@@ -1,0 +1,126 @@
+    :root {
+            /* typedigital Farbwelt [cite: 142] */
+            --td-dark-blue: #171D26;
+            --td-sunset: #FF5958; /* cite: 145, 147 */
+            --td-platinum: #E3E5E5; /* cite: 153, 155 */
+            
+            font-family: 'Nexa', sans-serif; /* Primäre Hausschrift [cite: 180] */
+            background-color: var(--td-platinum);
+            color: var(--td-dark-blue);
+        }
+
+        body { padding: 40px; max-width: 1100px; margin: 0 auto; }
+
+        h1, h2 { 
+            /* Recia für Headlines & Highlights [cite: 195] */
+            font-family: 'Recia', serif; 
+            font-style: italic; 
+            color: var(--td-dark-blue);
+        }
+
+        .claim {
+            color: var(--td-sunset);
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        /* Branding der Karussell-Komponente */
+        easy-carousel {
+            --dot-active-color: var(--td-sunset);
+            --dot-color: var(--td-dark-blue);
+            --dot-size: 10px;
+        }
+
+    /* Gemeinsames Styling für die Slides (Light DOM) */
+    .slide {
+        aspect-ratio: 16 / 9;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: bold;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Animation: Aktive Slides hervorheben */
+    .slide[data-active="true"] {
+        border-color: #3b82f6;
+        transform: scale(1.02);
+        box-shadow: 0 10px 15px -3px rgb(59 130 246 / 0.2);
+    }
+
+    .slide p { font-size: 1rem; margin: 10px 0 0; font-weight: normal; color: #6b7280; }
+
+    /* RESPONSIVE BREAKPOINTS via CSS Variablen */
+    #hero-carousel {
+        --items-per-view: 1;
+        --gap: 10px;
+    }
+
+    @media (min-width: 768px) {
+        #hero-carousel {
+            --items-per-view: 3;
+            --gap: 20px;
+        }
+    }
+
+    /* Custom Styling für Dots via ::part */
+    #custom-dots::part(dot-active) {
+        background-color: #10b981; /* Smaragdgrün */
+    }
+
+    /* Styling für das Wrapper-Layout */
+    .carousel-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* Das Karussell füllt den Platz zwischen den Buttons */
+    #api-demo {
+        flex: 1;
+    }
+
+    /* Styling für die runden Pfeil-Buttons */
+    .nav-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 1px solid #e5e7eb;
+        background: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.2s ease;
+        z-index: 10;
+        flex-shrink: 0;
+    }
+
+    .nav-btn:hover {
+        background: #f3f4f6;
+        transform: scale(1.1);
+        border-color: #3b82f6;
+    }
+
+    .nav-btn svg {
+        fill: #374151;
+    }
+
+    /* Optional: Buttons über das Karussell legen statt daneben */
+    @media (max-width: 600px) {
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .nav-btn.prev { left: 5px; }
+        .nav-btn.next { right: 5px; }
+    }

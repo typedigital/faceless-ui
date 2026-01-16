@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy-Carousel Master Demo</title>
+    
+    <script src="index.js" defer></script>
+    <link rel="stylesheet" href="showcase.css">
+</head>
+<body>
+
+    <h1>Easy-Carousel Showroom</h1>
+
+    <h2>1. Responsive Hero (Loop + Peek)</h2>
+    <p>Mobil: 1 Item | Desktop: 3 Items | 15% Peeking am Rand</p>
+    <easy-carousel 
+        id="hero-carousel" 
+        loop 
+        show-dots 
+        peek="15%" 
+        peek-type="fade" 
+        mousewheel
+    >
+        <div class="slide">1 <p>Entdecke mehr</p></div>
+        <div class="slide">2 <p>Nur für kurze Zeit</p></div>
+        <div class="slide">3 <p>Bestseller</p></div>
+        <div class="slide">4 <p>Neu eingetroffen</p></div>
+        <div class="slide">5 <p>Angebote</p></div>
+    </easy-carousel>
+
+
+    <h2>2. Autoplay Brands (Hard Peek)</h2>
+    <p>Läuft von selbst, stoppt bei Hover oder Fokus. 50px Hard-Peek.</p>
+    <easy-carousel 
+        autoplay 
+        interval="2500" 
+        loop 
+        items-per-view="4" 
+        gap="30" 
+        peek="50px"
+    >
+        <div class="slide" style="aspect-ratio: 3/1; font-size: 1.5rem;">LOGO A</div>
+        <div class="slide" style="aspect-ratio: 3/1; font-size: 1.5rem;">LOGO B</div>
+        <div class="slide" style="aspect-ratio: 3/1; font-size: 1.5rem;">LOGO C</div>
+        <div class="slide" style="aspect-ratio: 3/1; font-size: 1.5rem;">LOGO D</div>
+        <div class="slide" style="aspect-ratio: 3/1; font-size: 1.5rem;">LOGO E</div>
+        <div class="slide" style="aspect-ratio: 3/1; font-size: 1.5rem;">LOGO F</div>
+    </easy-carousel>
+
+
+    <h2>3. A11y & Interaktion</h2>
+    <p>Mit der Tab-Taste navigierbar. Springt automatisch zum Slide, wenn Link fokusiert wird.</p>
+    <easy-carousel id="custom-dots" show-dots items-per-view="2" gap="20" mousewheel>
+        <div class="slide">
+            <span>🎁</span>
+            <button onclick="alert('Geklickt!')">Aktion 1</button>
+        </div>
+        <div class="slide">
+            <span>🚀</span>
+            <a href="#">Mehr erfahren</a>
+        </div>
+        <div class="slide">
+            <span>⭐</span>
+            <button>Bewerten</button>
+        </div>
+        <div class="slide">
+            <span>🔥</span>
+            <a href="#">Hot Deals</a>
+        </div>
+    </easy-carousel>
+
+    <h2>4. Externe Navigation (Buttons)</h2>
+    <p>Die Buttons nutzen die öffentliche API (.next() / .prev()) der Komponente.</p>
+
+    <div class="carousel-wrapper">
+        <button class="nav-btn prev" onclick="document.getElementById('api-demo').prev()" aria-label="Vorheriges Slide">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+
+        <easy-carousel id="api-demo" loop items-per-view="2" gap="20" show-dots mousewheel>
+            <div class="slide" style="background: #fee2e2;">Slide A</div>
+            <div class="slide" style="background: #fef3c7;">Slide B</div>
+            <div class="slide" style="background: #dcfce7;">Slide C</div>
+            <div class="slide" style="background: #dbeafe;">Slide D</div>
+        </easy-carousel>
+
+        <button class="nav-btn next" onclick="document.getElementById('api-demo').next()" aria-label="Nächstes Slide">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </button>
+    </div>
+
+    <footer style="margin-top: 100px; text-align: center; color: #9ca3af; font-size: 0.8rem;">
+        Easy-Carousel Component v1.0 - Keine Abhängigkeiten.
+    </footer>
+
+</body>
+</html>

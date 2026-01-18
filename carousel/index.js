@@ -355,7 +355,7 @@ class EasyCarousel extends HTMLElement {
 
   _renderDots() {
     this.dotsContainer.innerHTML = '';
-    if (!this.hasAttribute('show-dots')) return;
+    if (!this.hasAttribute('show-dots') || !this.getAttribute('show-dots')) return;
     for (let i = 0; i < this.state.realCount; i++) {
       const dot = document.createElement('button');
       dot.classList.add('dot');

@@ -38,7 +38,7 @@ template.innerHTML = `
     flex-shrink: 0;
     box-sizing: border-box;
     width: var(--internal-slide-width) !important;
-    transition: transform 0.5s ease, opacity 0.5s ease, visibility 0.3s;
+    transition: transform 0.5s ease, opacity 0.5s ease !important;
   }
 
   ::slotted(:not([data-visible])) {
@@ -238,7 +238,7 @@ class EasyCarousel extends HTMLElement {
       if (elSlideIdx === realIndex) el.setAttribute('data-active', 'true');
       else el.removeAttribute('data-active');
 
-      const isVisible = i >= viewportStart && i < Math.ceil(viewportEnd + 0.1);
+      const isVisible = i >= Math.floor(viewportStart) - 1 && i < Math.ceil(viewportEnd) + 1;
 
       if (isVisible) {
         el.setAttribute('data-visible', 'true');
@@ -263,8 +263,7 @@ class EasyCarousel extends HTMLElement {
     this.state.realCount = rawSlides.length;
     
     const loop = this.hasAttribute('loop');
-    const itemsPerView = parseFloat(getComputedStyle(this).getPropertyValue('--items-per-view')) || 1;
-
+    const itemsPerView = parseFloat(this.getAttribute('items-per-view')) || parseFloat(getComputedStyle(this).getPropertyValue('--items-per-view')) || 1;
     if (loop) {
       const buffer = Math.ceil(itemsPerView) + 2; 
       this.state.cloneCount = buffer;
@@ -301,15 +300,14 @@ class EasyCarousel extends HTMLElement {
 
       if (this.hasAttribute('loop')) {
         const totalWidth = realCount * stride;
-        const minLimit = -(cloneCount * stride);
-        const maxLimit = -((cloneCount + realCount) * stride);
+        const startOfReal = -(cloneCount * stride);
+        const endOfReal = -((cloneCount + realCount) * stride);
 
-        if (this.state.currentTranslate > minLimit + (stride / 2)) {
+        if (this.state.currentTranslate > startOfReal) {
           this.state.currentTranslate -= totalWidth;
           this.state.targetTranslate -= totalWidth;
           this.state.currentIndex += realCount;
-        } 
-        else if (this.state.currentTranslate < maxLimit - (stride / 2)) {
+        } else if (this.state.currentTranslate <= endOfReal) {
           this.state.currentTranslate += totalWidth;
           this.state.targetTranslate += totalWidth;
           this.state.currentIndex -= realCount;

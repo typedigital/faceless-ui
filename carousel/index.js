@@ -77,7 +77,7 @@ template.innerHTML = `
 <div class="dots-container" part="dots-container" role="tablist"></div>
 `;
 
-class EasyCarousel extends HTMLElement {
+class FacelessCarousel extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -419,4 +419,4 @@ class EasyCarousel extends HTMLElement {
   _onResize() { this._measure(); }
 }
 
-customElements.define('easy-carousel', EasyCarousel);
+customElements.define('faceless-carousel', FacelessCarousel);

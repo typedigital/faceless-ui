@@ -1,45 +1,13 @@
-# typedigital. EasyCarousel
+# typedigital. FacelessCarousel
 
 A lightweight, zero-dependency, and framework-agnostic web component designed for high-performance digital products.
 
-It follows the **typedigital. philosophy**: technology-driven positive change.
+It follows the **Faceless Component** pattern: decoupling state management and behavior from visual presentation. This allows you to use the component's logic with any styling system (Tailwind, CSS Modules, etc.).
 
 ---
 
-## Core Features
-
-- **Zero Dependencies**  
-  Built with pure Vanilla JS and Shadow DOM for maximum compatibility and performance.
-
-- **Infinite Loop**  
-  Seamlessly transitions from the last to the first slide without flickering.
-
-- **Responsive by Design**  
-  Control the layout using the `items-per-view` attribute or CSS variables for different breakpoints.
-
-- **Smart Peeking**  
-  Reveal a portion of the next slide (using `%` or `px`) to encourage user interaction.
-
-- **Advanced Masking**  
-  Support for “hard” edges or a “fade” transition at the carousel edges using high-performance CSS masks.
-
-- **Pill Pagination**  
-  Interactive dots with a modern pill-style expansion animation for the active state.
-
-- **Intelligent Autoplay**  
-  Automatically cycles through slides with built-in *Pause-on-Hover* and *Pause-on-Focus* behavior.
-
-- **Accessibility (A11y)**  
-  Full keyboard support (arrow keys), screen-reader visibility management, and focus synchronization.
-
-- **Reduced Motion Support**  
-  Respects system-level `prefers-reduced-motion` settings.
-
----
-
-## Technical Specifications
-
-### Attributes
+## 1. Core Technical Specifications
+The component is configured primarily through HTML attributes. For boolean attributes like `loop` or `autoplay`, simply adding the attribute enables the feature.
 
 | Attribute        | Description                                                         | Default |
 |------------------|---------------------------------------------------------------------|---------|
@@ -52,35 +20,61 @@ It follows the **typedigital. philosophy**: technology-driven positive change.
 | `autoplay`       | Enables automatic sliding                                            | `false` |
 | `interval`       | Autoplay delay in milliseconds                                       | `3000`  |
 | `mousewheel`     | Enables horizontal scrolling via trackpad or mouse wheel            | `false` |
+| `speed`          | Enables continuous scroll (Ticker Mode) when set to a number        | `none`  |
 
 ---
 
-## CSS Variables
+## 2. Layout & Responsiveness
+The carousel is responsive by design. You can control the layout using the `items-per-view` attribute or CSS variables.
 
+### Breakpoints
+Use CSS variables to change the layout at different screen sizes:
 ```css
-easy-carousel {
-  --items-per-view: 1;
-  --gap: 20px;
-  --dot-active-color: #FF5958; 
-  --dot-color: #171D26;
+@media (min-width: 768px) {
+  faceless-carousel {
+    --items-per-view: 3;
+    --gap: 20px;
+  }
 }
 ```
 
-## CSS Parts
-
-You can style internal elements using `::part()`:
-
-- `::part(viewport)` – The main container
-- `::part(track)` – The sliding track
-- `::part(dot)` – Individual pagination dots
-- `::part(dot-active)` – The currently active pill-shaped dot
-
 ---
 
-## Public API
+## 3. Infinite Loop
+The `loop` attribute creates a seamless transition from the last slide back to the first. The component uses a smart cloning system that ensures the track always feels populated, preventing gaps regardless of the items-per-view count.
 
+## 4. Smart Peeking & Advanced Masking
+**Peeking:** Reveal a portion of the next slide using percentage or pixel values (e.g., `peek="100px"`).
+
+**Masking:** When using `peek-type="fade"`, a high-performance CSS mask creates a smooth transition at the edges.
+
+## 5. Intelligent Autoplay
+Automatically cycles through slides with built-in **Pause-on-Hover** and **Pause-on-Focus** behavior. Sliding resumes once user interaction ends.
+
+## 6. Continuous Scroll (Ticker Mode)
+By setting the `speed` attribute, the carousel switches to a smooth, constant motion.
+
+**Usage:** Ideal for logo walls or brand tickers.
+
+**Interactivity:** Even in Ticker Mode, dragging will pause the motion for manual control.
+
+## 7. Public API
 The component exposes a clean API for external control:
 
-- `next()` – Advance to the next slide
-- `prev()` – Go back to the previous slide
-- `goTo(index)` – Jump directly to a specific slide index
+- `next()` – Advance to the next slide  
+- `prev()` – Go back to the previous slide  
+- `goTo(index)` – Jump directly to a specific index  
+
+## 8. Accessibility (A11y)
+- **Keyboard Support:** Full arrow key navigation  
+- **Screen Readers:** Automatic management of `aria-hidden` and `tabindex` for off-screen slides  
+- **Focus Sync:** Automatically scrolls slides into view when internal elements (links/buttons) receive focus  
+- **Reduced Motion:** Respects system-level `prefers-reduced-motion` settings  
+
+## 9. Styling & Customization
+Use CSS Variables and Shadow Parts to style internal elements:
+
+- `::part(viewport)` – The clipping container  
+- `::part(track)` – The sliding track  
+- `::part(dot)` – Individual pagination dots  
+- `::part(dot-active)` – The active pill-shaped dot  

@@ -293,10 +293,22 @@ class EasyCarousel extends HTMLElement {
 
   _raf() {
     const { isDragging, currentTranslate, targetTranslate, stride, realCount, cloneCount } = this.state;
-    
+  
+    if (!stride || this.state.isInitializing) {
+      this.rafId = requestAnimationFrame(this._raf);
+      return;
+    }
+
+    const speed = parseFloat(this.getAttribute('speed'));
+
     if (!isDragging) {
-      const diff = targetTranslate - currentTranslate;
-      this.state.currentTranslate += diff * this.config.elasticity;
+      if (!isNaN(speed) && speed !== 0) {
+        this.state.currentTranslate -= speed;
+        this.state.targetTranslate = this.state.currentTranslate;
+      } else {
+        const diff = targetTranslate - currentTranslate;
+        this.state.currentTranslate += diff * this.config.elasticity;
+      }
 
       if (this.hasAttribute('loop')) {
         const totalWidth = realCount * stride;
@@ -306,23 +318,20 @@ class EasyCarousel extends HTMLElement {
         if (this.state.currentTranslate > startOfReal) {
           this.state.currentTranslate -= totalWidth;
           this.state.targetTranslate -= totalWidth;
-          this.state.currentIndex += realCount;
         } else if (this.state.currentTranslate <= endOfReal) {
           this.state.currentTranslate += totalWidth;
           this.state.targetTranslate += totalWidth;
-          this.state.currentIndex -= realCount;
         }
-      }
-
-      if (Math.abs(targetTranslate - this.state.currentTranslate) < 0.1) {
-        this.state.currentTranslate = targetTranslate;
       }
     }
 
     this.track.style.transform = `translate3d(${this.state.currentTranslate}px, 0, 0)`;
     
+    const startOfReal = -(cloneCount * stride);
+    const relativePos = this.state.currentTranslate - startOfReal;
+    this.state.currentIndex = Math.round(-(relativePos / stride));
+
     this._syncActiveStates(); 
-    
     this.rafId = requestAnimationFrame(this._raf);
   }
 

@@ -43,13 +43,19 @@ Use CSS variables to change the layout at different screen sizes:
 ## 3. Infinite Loop
 The `loop` attribute creates a seamless transition from the last slide back to the first. The component uses a smart cloning system that ensures the track always feels populated, preventing gaps regardless of the items-per-view count.
 
+---
+
 ## 4. Smart Peeking & Advanced Masking
 **Peeking:** Reveal a portion of the next slide using percentage or pixel values (e.g., `peek="100px"`).
 
 **Masking:** When using `peek-type="fade"`, a high-performance CSS mask creates a smooth transition at the edges.
 
+---
+
 ## 5. Intelligent Autoplay
 Automatically cycles through slides with built-in **Pause-on-Hover** and **Pause-on-Focus** behavior. Sliding resumes once user interaction ends.
+
+---
 
 ## 6. Continuous Scroll (Ticker Mode)
 By setting the `speed` attribute, the carousel switches to a smooth, constant motion.
@@ -58,6 +64,8 @@ By setting the `speed` attribute, the carousel switches to a smooth, constant mo
 
 **Interactivity:** Even in Ticker Mode, dragging will pause the motion for manual control.
 
+---
+
 ## 7. Public API
 The component exposes a clean API for external control:
 
@@ -65,11 +73,15 @@ The component exposes a clean API for external control:
 - `prev()` – Go back to the previous slide  
 - `goTo(index)` – Jump directly to a specific index  
 
+---
+
 ## 8. Accessibility (A11y)
 - **Keyboard Support:** Full arrow key navigation  
 - **Screen Readers:** Automatic management of `aria-hidden` and `tabindex` for off-screen slides  
 - **Focus Sync:** Automatically scrolls slides into view when internal elements (links/buttons) receive focus  
 - **Reduced Motion:** Respects system-level `prefers-reduced-motion` settings  
+
+---
 
 ## 9. Styling & Customization
 Use CSS Variables and Shadow Parts to style internal elements:

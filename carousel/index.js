@@ -95,7 +95,6 @@ class EasyCarousel extends HTMLElement {
       isInitializing: false,
       autoplayTimer: null,
       isPaused: false,
-      // Wheel State
       wheelAccumulator: 0,
       isWheelLocked: false
     };
@@ -128,7 +127,6 @@ class EasyCarousel extends HTMLElement {
 
     this.setAttribute('tabindex', '0');
     
-    // Mouse & Touch
     this.viewport.addEventListener('mousedown', this._onDragStart);
     this.viewport.addEventListener('touchstart', this._onDragStart, { passive: false });
     window.addEventListener('mousemove', this._onDragMove);
@@ -136,7 +134,6 @@ class EasyCarousel extends HTMLElement {
     window.addEventListener('mouseup', this._onDragEnd);
     window.addEventListener('touchend', this._onDragEnd);
     
-    // Keyboard & Wheel
     this.addEventListener('keydown', this._onKeyDown);
     this.addEventListener('focusin', this._onFocusIn);
     this.viewport.addEventListener('wheel', this._onWheel, { passive: false });
@@ -147,21 +144,22 @@ class EasyCarousel extends HTMLElement {
     this.slotEl.addEventListener('slotchange', () => {
       if (!this.state.isInitializing) this._init();
     });
+
+    this.addEventListener('mouseenter', () => this._setPaused(true));
+    this.addEventListener('mouseleave', () => this._setPaused(false));
+    this.addEventListener('focusin', () => this._setPaused(true));
+    this.addEventListener('focusout', () => this._setPaused(false));
     
     this.rafId = requestAnimationFrame(this._raf);
   }
 
-  // --- NEU: Wheel Handler ---
   _onWheel(e) {
     if (!this.hasAttribute('mousewheel')) return;
-
-    // Wir schauen auf deltaX (reguläres horizontales Scrollen) 
-    // oder deltaY + Shift-Taste (Windows-Standard für horizontales Scrollen)
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     
-    if (Math.abs(delta) < 5) return; // Ignore micro-scrolls
+    if (Math.abs(delta) < 5) return;
 
-    e.preventDefault(); // Stoppt Browser Back/Forward Geste
+    e.preventDefault();
     this._stopAutoplay();
 
     if (this.state.isWheelLocked) return;
@@ -175,14 +173,12 @@ class EasyCarousel extends HTMLElement {
         this.prev();
       }
       
-      // Lock setzen, damit ein "Flick" nicht 10 Slides überspringt
       this.state.isWheelLocked = true;
       this.state.wheelAccumulator = 0;
 
-      // Unlock nach kurzer Zeit
       setTimeout(() => {
         this.state.isWheelLocked = false;
-      }, 400); // 400ms Cooldown für Wheel-Gesten
+      }, 400);
     }
   }
 
@@ -223,7 +219,12 @@ class EasyCarousel extends HTMLElement {
 
   _syncActiveStates() {
     const { currentIndex, realCount, cloneCount } = this.state;
-    const itemsVisible = parseFloat(getComputedStyle(this).getPropertyValue('--items-per-view')) || 1;
+
+    const style = getComputedStyle(this);
+    const itemsVisible =
+      parseFloat(this.getAttribute('items-per-view')) || 
+      parseFloat(style.getPropertyValue('--items-per-view')) || 1;
+      
     const realIndex = ((currentIndex % realCount) + realCount) % realCount;
 
     const dots = this.dotsContainer.querySelectorAll('.dot');
@@ -284,23 +285,46 @@ class EasyCarousel extends HTMLElement {
     } else { this.state.cloneCount = 0; }
 
     this._renderDots();
-    setTimeout(() => { this._measure(); this.state.isInitializing = false; }, 0);
+    setTimeout(() => {
+      this._measure();
+      this.state.isInitializing = false;
+      if (this.hasAttribute('autoplay')) this._startAutoplay();
+    }, 0);
   }
 
   _raf() {
-    const { isDragging, currentTranslate, targetTranslate, stride, realCount } = this.state;
+    const { isDragging, currentTranslate, targetTranslate, stride, realCount, cloneCount } = this.state;
+    
     if (!isDragging) {
       const diff = targetTranslate - currentTranslate;
       this.state.currentTranslate += diff * this.config.elasticity;
-      if (Math.abs(diff) < 0.1) {
-        this.state.currentTranslate = targetTranslate;
-        if (this.hasAttribute('loop')) {
-          const normalizedIndex = ((this.state.currentIndex % realCount) + realCount) % realCount;
-          if (this.state.currentIndex !== normalizedIndex) this.goTo(normalizedIndex, false);
+
+      if (this.hasAttribute('loop')) {
+        const totalWidth = realCount * stride;
+        const minLimit = -(cloneCount * stride);
+        const maxLimit = -((cloneCount + realCount) * stride);
+
+        if (this.state.currentTranslate > minLimit + (stride / 2)) {
+          this.state.currentTranslate -= totalWidth;
+          this.state.targetTranslate -= totalWidth;
+          this.state.currentIndex += realCount;
+        } 
+        else if (this.state.currentTranslate < maxLimit - (stride / 2)) {
+          this.state.currentTranslate += totalWidth;
+          this.state.targetTranslate += totalWidth;
+          this.state.currentIndex -= realCount;
         }
       }
+
+      if (Math.abs(targetTranslate - this.state.currentTranslate) < 0.1) {
+        this.state.currentTranslate = targetTranslate;
+      }
     }
+
     this.track.style.transform = `translate3d(${this.state.currentTranslate}px, 0, 0)`;
+    
+    this._syncActiveStates(); 
+    
     this.rafId = requestAnimationFrame(this._raf);
   }
 
@@ -355,7 +379,7 @@ class EasyCarousel extends HTMLElement {
 
   _renderDots() {
     this.dotsContainer.innerHTML = '';
-    if (!this.hasAttribute('show-dots') || !this.getAttribute('show-dots')) return;
+    if (!this.hasAttribute('show-dots')) return;
     for (let i = 0; i < this.state.realCount; i++) {
       const dot = document.createElement('button');
       dot.classList.add('dot');

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faceless-accordion Master Demo</title>
+
+    <script src="index.js" defer></script>
+    <link rel="stylesheet" href="showcase.css">
+</head>
+<body>
+
+    <h1>Faceless-accordion Showroom</h1>
+
+    <h2>1. Basic (Single Mode)</h2>
+    <p>Nur ein Panel gleichzeitig geöffnet. Klicke auf einen Trigger, um zu wechseln.</p>
+    <faceless-accordion id="basic-accordion">
+        <div data-open>
+            <h3 data-trigger>Was ist das Faceless-Pattern?</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Das Faceless-Pattern trennt Logik und State vom visuellen Design.
+                    Die Komponente kümmert sich um Zugänglichkeit, Animationen und Tastaturnavigation
+                    — das Styling liegt komplett beim Nutzer.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Brauche ich ein Framework?</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Nein. Faceless-accordion ist ein nativer Web Component ohne Abhängigkeiten.
+                    Es funktioniert mit jedem Framework oder ganz ohne.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Wie steuere ich die Animation?</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Über CSS-Variablen: <code>--accordion-duration</code> und <code>--accordion-easing</code>.
+                    Standardwerte sind 300ms und ease.
+                </div>
+            </div>
+        </div>
+    </faceless-accordion>
+
+
+    <h2>2. Multiple Mode</h2>
+    <p>Mit dem <code>multiple</code>-Attribut können mehrere Panels gleichzeitig offen sein.</p>
+    <faceless-accordion multiple>
+        <div data-open>
+            <h3 data-trigger>HTML</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Strukturiert den Inhalt semantisch mit Elementen wie Headings, Listen und Sections.
+                </div>
+            </div>
+        </div>
+        <div data-open>
+            <h3 data-trigger>CSS</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Kontrolliert das Layout, Farben, Typografie und Animationen — komplett deklarativ.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>JavaScript</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Fügt Interaktivität hinzu: Event-Handling, DOM-Manipulation und Zustandsverwaltung.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Web Components</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Native Browser-API für wiederverwendbare, gekapselte UI-Komponenten — ohne Framework.
+                </div>
+            </div>
+        </div>
+    </faceless-accordion>
+
+
+    <h2>3. Disabled Items</h2>
+    <p>Items mit <code>data-disabled</code> können nicht geöffnet werden und werden bei der Tastaturnavigation übersprungen.</p>
+    <faceless-accordion>
+        <div>
+            <h3 data-trigger>Verfügbar</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Dieses Panel lässt sich normal öffnen und schließen.
+                </div>
+            </div>
+        </div>
+        <div data-disabled>
+            <h3 data-trigger>Gesperrt (Premium)</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Dieser Inhalt ist nicht zugänglich.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Auch verfügbar</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Arrow-Tasten überspringen das gesperrte Item und springen direkt hierher.
+                </div>
+            </div>
+        </div>
+    </faceless-accordion>
+
+
+    <h2>4. Verschachteltes Accordion</h2>
+    <p>Ein Accordion innerhalb eines Panels — Klicks und Tastatureingaben im inneren Accordion beeinflussen das äußere nicht.</p>
+    <faceless-accordion>
+        <div data-open>
+            <h3 data-trigger>Äußeres Panel</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    <p style="margin-bottom: 12px;">Hier ist ein verschachteltes Accordion:</p>
+
+                    <faceless-accordion class="nested-accordion" multiple>
+                        <div>
+                            <h4 data-trigger>Inneres Item A</h4>
+                            <div data-panel>
+                                <div class="panel-content">Inhalt von A — gehört zum inneren Accordion.</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 data-trigger>Inneres Item B</h4>
+                            <div data-panel>
+                                <div class="panel-content">Inhalt von B — das äußere Panel bleibt unberührt.</div>
+                            </div>
+                        </div>
+                    </faceless-accordion>
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Zweites äußeres Panel</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Dieses Panel ist unabhängig vom verschachtelten Accordion.
+                </div>
+            </div>
+        </div>
+    </faceless-accordion>
+
+
+    <h2>5. Externe API</h2>
+    <p>Die Buttons nutzen die öffentliche API (<code>.open()</code>, <code>.close()</code>, <code>.toggle()</code>) der Komponente.</p>
+    <div class="api-controls">
+        <button onclick="document.getElementById('api-accordion').open(0)">open(0)</button>
+        <button onclick="document.getElementById('api-accordion').open(1)">open(1)</button>
+        <button onclick="document.getElementById('api-accordion').close(0)">close(0)</button>
+        <button onclick="document.getElementById('api-accordion').toggle(2)">toggle(2)</button>
+    </div>
+    <faceless-accordion id="api-accordion" multiple>
+        <div>
+            <h3 data-trigger>Panel 0</h3>
+            <div data-panel>
+                <div class="panel-content">Gesteuert über die externe API.</div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Panel 1</h3>
+            <div data-panel>
+                <div class="panel-content">Auch über Buttons steuerbar.</div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Panel 2</h3>
+            <div data-panel>
+                <div class="panel-content">Toggle wechselt zwischen offen und geschlossen.</div>
+            </div>
+        </div>
+    </faceless-accordion>
+
+
+    <h2>6. Eigenes Timing</h2>
+    <p>Über <code>--accordion-duration</code> und <code>--accordion-easing</code> lässt sich die Animation anpassen.</p>
+    <faceless-accordion class="slow-accordion">
+        <div>
+            <h3 data-trigger>Langsame Animation (600ms)</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Diese Animation dauert 600ms mit einem cubic-bezier Easing für einen weicheren Effekt.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Gleiche Geschwindigkeit</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Alle Panels in diesem Accordion teilen sich die gleichen CSS-Variablen.
+                </div>
+            </div>
+        </div>
+    </faceless-accordion>
+
+    <footer>
+        Faceless-accordion Component v1.0 — Keine Abhängigkeiten.
+    </footer>
+
+</body>
+</html>

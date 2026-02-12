@@ -1,0 +1,157 @@
+:root {
+    --td-dark-blue: #171D26;
+    --td-sunset: #FF5958;
+    --td-platinum: #E3E5E5;
+
+    font-family: 'Nexa', sans-serif;
+    background-color: var(--td-platinum);
+    color: var(--td-dark-blue);
+}
+
+body { padding: 40px; max-width: 800px; margin: 0 auto; }
+
+h1, h2 {
+    font-family: 'Recia', serif;
+    font-style: italic;
+    color: var(--td-dark-blue);
+}
+
+p { margin-bottom: 16px; }
+
+code {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+footer {
+    margin-top: 100px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+/* ─── Accordion items ─── */
+faceless-accordion > div {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+faceless-accordion > div[data-open] {
+    border-color: var(--td-sunset);
+    box-shadow: 0 4px 12px rgba(255, 89, 88, 0.1);
+}
+
+faceless-accordion > div[data-disabled] {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ─── Triggers ─── */
+[data-trigger] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 16px 20px;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--td-dark-blue);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+[data-trigger]:hover {
+    color: var(--td-sunset);
+}
+
+[data-trigger]:focus-visible {
+    outline: 2px solid var(--td-sunset);
+    outline-offset: -2px;
+    border-radius: 12px;
+}
+
+/* Chevron */
+[data-trigger]::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform var(--accordion-duration, 300ms) var(--accordion-easing, ease);
+    flex-shrink: 0;
+    margin-left: 16px;
+}
+
+[data-trigger][data-open]::after {
+    transform: rotate(-135deg);
+}
+
+/* ─── Panel content ─── */
+.panel-content {
+    padding: 0 20px 16px;
+    line-height: 1.6;
+    color: #4b5563;
+}
+
+/* ─── Nested accordion ─── */
+.nested-accordion > div {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    border-radius: 8px;
+}
+
+.nested-accordion > div[data-open] {
+    border-color: var(--td-dark-blue);
+    box-shadow: none;
+}
+
+.nested-accordion [data-trigger] {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+}
+
+.nested-accordion .panel-content {
+    padding: 0 16px 12px;
+    font-size: 0.9rem;
+}
+
+/* ─── Custom timing demo ─── */
+.slow-accordion {
+    --accordion-duration: 600ms;
+    --accordion-easing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── API control buttons ─── */
+.api-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.api-controls button {
+    padding: 8px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--td-dark-blue);
+    font-family: monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.api-controls button:hover {
+    background: var(--td-dark-blue);
+    color: #ffffff;
+    border-color: var(--td-dark-blue);
+}

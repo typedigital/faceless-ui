@@ -1,7 +1,9 @@
+const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+
 let instanceCount = 0;
 
-const template = document.createElement('template');
-template.innerHTML = `
+const template = isBrowser ? document.createElement('template') : null;
+if (template) template.innerHTML = `
 <style>
   :host {
     display: block;
@@ -15,6 +17,7 @@ template.innerHTML = `
 class FacelessAccordion extends HTMLElement {
   constructor() {
     super();
+    if (!isBrowser) return;
     this.attachShadow({ mode: 'open' });
     this.shadowRoot.appendChild(template.content.cloneNode(true));
 
@@ -26,6 +29,7 @@ class FacelessAccordion extends HTMLElement {
   }
 
   connectedCallback() {
+    if (!isBrowser) return;
     this.shadowRoot.querySelector('slot').addEventListener('slotchange', () => this._init());
     this.addEventListener('click', this._onClick);
     this.addEventListener('keydown', this._onKeyDown);
@@ -33,6 +37,7 @@ class FacelessAccordion extends HTMLElement {
   }
 
   disconnectedCallback() {
+    if (!isBrowser) return;
     this.removeEventListener('click', this._onClick);
     this.removeEventListener('keydown', this._onKeyDown);
     this.removeEventListener('transitionend', this._onTransitionEnd);
@@ -243,4 +248,4 @@ class FacelessAccordion extends HTMLElement {
   }
 }
 
-customElements.define('faceless-accordion', FacelessAccordion);
+if (isBrowser) customElements.define('faceless-accordion', FacelessAccordion);

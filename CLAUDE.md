@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Faceless UI is a zero-dependency, framework-agnostic web component library implementing the **Faceless Component** pattern: logic/state/a11y are handled by the component, while visual presentation is entirely left to the consumer. The only component so far is `<faceless-carousel>`.
+Faceless UI is a zero-dependency, framework-agnostic web component library implementing the **Faceless Component** pattern: logic/state/a11y are handled by the component, while visual presentation is entirely left to the consumer.
 
 ## Development
 
@@ -52,3 +52,59 @@ Single class `FacelessCarousel extends HTMLElement`, registered as `<faceless-ca
 - Methods are bound in constructor for use as event handlers
 - Cloned slides get `.clone` class and preserve `data-slide-idx` from their original
 - `data-visible` / `data-active` data attributes on slides are the primary hooks for consumer styling
+
+## Universal Rendering (SSR / SSG / CSR)
+
+Every component must be safe to import in non-browser environments (Node.js, Deno, Edge, SSR/SSG pipelines) without throwing errors.
+
+### Required Pattern
+
+Apply these four guards to every new component, in this exact order:
+
+**1. `isBrowser` constant — top of file, before any DOM access:**
+```js
+const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+```
+
+**2. Conditional template creation:**
+```js
+const template = isBrowser ? document.createElement('template') : null;
+if (template) template.innerHTML = `...`;
+```
+
+**3. Early return in all lifecycle methods:**
+```js
+constructor() {
+  super();
+  if (!isBrowser) return;
+  // DOM work here
+}
+
+connectedCallback() {
+  if (!isBrowser) return;
+  // event listeners, queries, observers here
+}
+
+disconnectedCallback() {
+  if (!isBrowser) return;
+  // cleanup here
+}
+
+attributeChangedCallback() {
+  if (!isBrowser) return;
+  // re-render logic here
+}
+```
+
+**4. Guarded registration:**
+```js
+if (isBrowser) customElements.define('faceless-component', FacelessComponent);
+```
+
+### Rationale
+
+Web Components rely on `document`, `window`, `ResizeObserver`, `requestAnimationFrame`, and the Custom Elements registry — none of which exist in server runtimes. Without these guards, importing a component file in an SSR/SSG context throws immediately. With the guards, the file is safe to import anywhere: the element tag is preserved in server-rendered HTML and hydrates fully once JavaScript runs in the client. No framework-specific workarounds or configuration are needed.
+
+### Documentation
+
+Each component's `docs.md` must include a "Universal Rendering" section (see `carousel/docs.md` § 9 or `accordion/docs.md` § 9 as reference).

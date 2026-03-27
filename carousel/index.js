@@ -1,5 +1,7 @@
-const template = document.createElement('template');
-template.innerHTML = `
+const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+
+const template = isBrowser ? document.createElement('template') : null;
+if (template) template.innerHTML = `
 <style>
   :host {
     display: block;
@@ -80,6 +82,7 @@ template.innerHTML = `
 class FacelessCarousel extends HTMLElement {
   constructor() {
     super();
+    if (!isBrowser) return;
     this.attachShadow({ mode: 'open' });
     this.shadowRoot.appendChild(template.content.cloneNode(true));
 
@@ -116,10 +119,12 @@ class FacelessCarousel extends HTMLElement {
   }
 
   attributeChangedCallback() {
+    if (!isBrowser) return;
     if (this.isConnected) this._measure();
   }
 
   connectedCallback() {
+    if (!isBrowser) return;
     this.viewport = this.shadowRoot.querySelector('.viewport');
     this.track = this.shadowRoot.querySelector('.track');
     this.slotEl = this.shadowRoot.querySelector('slot');
@@ -419,4 +424,4 @@ class FacelessCarousel extends HTMLElement {
   _onResize() { this._measure(); }
 }
 
-customElements.define('faceless-carousel', FacelessCarousel);
+if (isBrowser) customElements.define('faceless-carousel', FacelessCarousel);

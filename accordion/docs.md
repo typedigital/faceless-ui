@@ -142,7 +142,24 @@ accordion.addEventListener('accordion-toggle', (e) => {
 
 ---
 
-## 9. Styling & Customization
+## 9. Universal Rendering (SSR / SSG / CSR)
+
+`<faceless-accordion>` works in every rendering environment without any configuration.
+
+| Environment | Support |
+|---|---|
+| Browser (CSR) | Full functionality |
+| Static Site Generation (SSG) | Safe — no runtime errors |
+| Server-Side Rendering (SSR) | Safe — no runtime errors |
+| Node.js / Deno / Edge Runtimes | Safe — no runtime errors |
+
+**How it works:** The component detects whether a browser environment is available via `typeof window !== 'undefined'`. In non-browser contexts, all DOM-dependent lifecycle methods exit immediately and `customElements.define` is skipped. The element tag is preserved in the server-rendered HTML and activates fully once JavaScript runs in the client.
+
+There is nothing to configure — server/client boundaries are not an obstacle.
+
+---
+
+## 10. Styling & Customization
 
 All content lives in the light DOM — no `::part` selectors needed. Style using standard CSS with data-attribute hooks:
 

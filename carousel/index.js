@@ -79,7 +79,9 @@ if (template) template.innerHTML = `
 <div class="dots-container" part="dots-container" role="tablist"></div>
 `;
 
-class FacelessCarousel extends HTMLElement {
+const BaseElement = isBrowser ? HTMLElement : class {};
+
+class FacelessCarousel extends BaseElement {
   constructor() {
     super();
     if (!isBrowser) return;

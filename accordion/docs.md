@@ -157,6 +157,19 @@ accordion.addEventListener('accordion-toggle', (e) => {
 
 There is nothing to configure — server/client boundaries are not an obstacle.
 
+### SSR Test
+
+An automated test script verifies SSR safety and generates a showcase page:
+
+```bash
+node accordion/ssr-test.mjs
+```
+
+The script:
+1. **Imports `index.js` in Node.js** — fails immediately if any browser API (`HTMLElement`, `document`, `window`) leaks through the guards
+2. **Generates `ssr-showcase.html`** — server-rendered HTML containing all accordion demos, identical to what a real SSR framework would emit
+3. **Open in browser** — the generated file hydrates progressively, proving the full SSR → client upgrade path works
+
 ---
 
 ## 10. Styling & Customization

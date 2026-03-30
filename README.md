@@ -71,7 +71,7 @@ The component handles everything else: touch drag with momentum, infinite loop c
 | Markup | Fixed structure | Your HTML, your classes |
 | Framework | Often React/Vue-specific | Any framework or none |
 | Dependencies | npm install | Single `<script>` tag |
-| SSR / SSG | Often requires workarounds | Works everywhere, no config |
+| SSR / SSG | Often requires workarounds | Works everywhere, no config — [verified by test](#ssr-testing) |
 | Bundle size | Varies, often heavy | ~10 KB, zero deps |
 
 Faceless UI is the right choice when your product has a strong, bespoke design and you cannot afford the visual compromises that come with opinionated component libraries.
@@ -107,3 +107,24 @@ The component communicates state back to your elements via data attributes:
 - `data-visible` — set on all slides within the viewport
 
 Use these as CSS hooks. The component does not impose any visual output.
+
+---
+
+## SSR Testing
+
+Each component ships with an SSR test script that **imports the component in Node.js** (verifying the `isBrowser` guards) and **generates a showcase HTML file** server-side — genuine SSR output, not hand-written HTML.
+
+```bash
+# Carousel
+node carousel/ssr-test.mjs
+
+# Accordion
+node accordion/ssr-test.mjs
+```
+
+Each script:
+1. Imports `index.js` in Node.js — fails immediately if any browser API leaks through
+2. Generates `ssr-showcase.html` with all component demos as server-rendered HTML
+3. The generated file can be opened in a browser to verify hydration works correctly
+
+The `ssr-showcase.html` files are **generated artifacts** — do not edit them by hand.

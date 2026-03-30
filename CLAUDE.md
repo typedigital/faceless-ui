@@ -59,7 +59,7 @@ Every component must be safe to import in non-browser environments (Node.js, Den
 
 ### Required Pattern
 
-Apply these four guards to every new component, in this exact order:
+Apply these five guards to every new component, in this exact order:
 
 **1. `isBrowser` constant — top of file, before any DOM access:**
 ```js
@@ -72,7 +72,14 @@ const template = isBrowser ? document.createElement('template') : null;
 if (template) template.innerHTML = `...`;
 ```
 
-**3. Early return in all lifecycle methods:**
+**3. Safe base class — `HTMLElement` does not exist in Node.js:**
+```js
+const BaseElement = isBrowser ? HTMLElement : class {};
+
+class FacelessComponent extends BaseElement {
+```
+
+**4. Early return in all lifecycle methods:**
 ```js
 constructor() {
   super();
@@ -96,7 +103,7 @@ attributeChangedCallback() {
 }
 ```
 
-**4. Guarded registration:**
+**5. Guarded registration:**
 ```js
 if (isBrowser) customElements.define('faceless-component', FacelessComponent);
 ```

@@ -14,7 +14,9 @@ if (template) template.innerHTML = `
 <slot></slot>
 `;
 
-class FacelessAccordion extends HTMLElement {
+const BaseElement = isBrowser ? HTMLElement : class {};
+
+class FacelessAccordion extends BaseElement {
   constructor() {
     super();
     if (!isBrowser) return;

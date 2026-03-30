@@ -150,6 +150,13 @@ class FacelessCarousel extends HTMLElement {
       if (!this.state.isInitializing) this._init();
     });
 
+    // Fallback for defer/async load: when <script type="module"> loads after the
+    // HTML is fully parsed, light DOM children are already assigned to the slot
+    // before this listener was added — slotchange may not fire in that case.
+    if (this.children.length > 0 && !this.state.isInitializing) {
+      this._init();
+    }
+
     this.addEventListener('mouseenter', () => this._setPaused(true));
     this.addEventListener('mouseleave', () => this._setPaused(false));
     this.addEventListener('focusin', () => this._setPaused(true));

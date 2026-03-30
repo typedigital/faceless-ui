@@ -1,0 +1,111 @@
+/* SSR Showcase — extends showcase.css */
+
+/* ─── Concept Banner ─── */
+.ssr-concept-banner {
+  border-left: 4px solid var(--td-sunset);
+  background: #ffffff;
+  padding: 20px 24px;
+  border-radius: 0 12px 12px 0;
+  margin-bottom: 40px;
+}
+
+.ssr-concept-banner p {
+  margin: 8px 0 0;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.ssr-concept-banner code,
+.walkthrough__content code {
+  font-family: monospace;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.875em;
+  color: #374151;
+}
+
+/* ─── Hero carousel fills flex wrapper ─── */
+#ssr-hero {
+  flex: 1;
+}
+
+/* ─── Slide color palette (5 slides, no external images) ─── */
+.slide--1 { background: #dbeafe; }
+.slide--2 { background: #fce7f3; }
+.slide--3 { background: #dcfce7; }
+.slide--4 { background: #fef3c7; }
+.slide--5 { background: #ede9fe; }
+
+/* ─── Slide sub-elements ─── */
+.slide__number {
+  font-size: 3.5rem;
+  font-weight: 800;
+  opacity: 0.25;
+  line-height: 1;
+}
+
+.slide__caption {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 8px;
+  color: #374151;
+}
+
+/* ─── Code Walkthrough ─── */
+.walkthrough {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-bottom: 60px;
+}
+
+.walkthrough__step {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--td-sunset);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.walkthrough__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.walkthrough__content > strong {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+/* ─── Code blocks ─── */
+.code-block {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 24px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.code-block code {
+  font-family: inherit;
+  white-space: pre;
+}

@@ -7,7 +7,7 @@ if (template) template.innerHTML = `
     display: block;
     position: relative;
     overflow: hidden;
-    --items-per-view: 1; 
+    --items-per-view: 1;
     --gap: 0px;
     --internal-slide-width: 0px;
     --dot-color: #d1d5db;
@@ -27,7 +27,7 @@ if (template) template.innerHTML = `
     -webkit-mask-image: var(--mask-gradient);
     mask-image: var(--mask-gradient);
   }
-  
+
   .track {
     display: flex;
     height: 100%;
@@ -93,9 +93,9 @@ class FacelessCarousel extends BaseElement {
       startX: 0,
       currentTranslate: 0,
       targetTranslate: 0,
-      stride: 0, 
-      currentIndex: 0, 
-      realCount: 0,    
+      stride: 0,
+      currentIndex: 0,
+      realCount: 0,
       cloneCount: 0,
       isInitializing: false,
       autoplayTimer: null,
@@ -116,8 +116,8 @@ class FacelessCarousel extends BaseElement {
     this._onWheel = this._onWheel.bind(this);
   }
 
-  static get observedAttributes() { 
-    return ['items-per-view', 'gap', 'loop', 'peek', 'peek-type', 'show-dots', 'autoplay', 'interval', 'mousewheel']; 
+  static get observedAttributes() {
+    return ['items-per-view', 'gap', 'loop', 'peek', 'peek-type', 'show-dots', 'autoplay', 'interval', 'mousewheel'];
   }
 
   attributeChangedCallback() {
@@ -133,44 +133,55 @@ class FacelessCarousel extends BaseElement {
     this.dotsContainer = this.shadowRoot.querySelector('.dots-container');
 
     this.setAttribute('tabindex', '0');
-    
+
     this.viewport.addEventListener('mousedown', this._onDragStart);
     this.viewport.addEventListener('touchstart', this._onDragStart, { passive: false });
     window.addEventListener('mousemove', this._onDragMove);
     window.addEventListener('touchmove', this._onDragMove, { passive: false });
     window.addEventListener('mouseup', this._onDragEnd);
     window.addEventListener('touchend', this._onDragEnd);
-    
+
     this.addEventListener('keydown', this._onKeyDown);
     this.addEventListener('focusin', this._onFocusIn);
     this.viewport.addEventListener('wheel', this._onWheel, { passive: false });
 
     this.resizeObserver = new ResizeObserver(this._onResize);
     this.resizeObserver.observe(this);
-    
+
     this.slotEl.addEventListener('slotchange', () => {
-      if (!this.state.isInitializing) this._init();
+      if (!this.state.isInitializing) this._deferredInit();
     });
 
     // Fallback for defer/async load: when <script type="module"> loads after the
     // HTML is fully parsed, light DOM children are already assigned to the slot
     // before this listener was added — slotchange may not fire in that case.
     if (this.children.length > 0 && !this.state.isInitializing) {
-      this._init();
+      this._deferredInit();
     }
 
     this.addEventListener('mouseenter', () => this._setPaused(true));
     this.addEventListener('mouseleave', () => this._setPaused(false));
     this.addEventListener('focusin', () => this._setPaused(true));
     this.addEventListener('focusout', () => this._setPaused(false));
-    
+
     this.rafId = requestAnimationFrame(this._raf);
+  }
+
+  disconnectedCallback() {
+    if (!isBrowser) return;
+    cancelAnimationFrame(this.rafId);
+    this._stopAutoplay();
+    if (this.resizeObserver) this.resizeObserver.disconnect();
+    window.removeEventListener('mousemove', this._onDragMove);
+    window.removeEventListener('touchmove', this._onDragMove);
+    window.removeEventListener('mouseup', this._onDragEnd);
+    window.removeEventListener('touchend', this._onDragEnd);
   }
 
   _onWheel(e) {
     if (!this.hasAttribute('mousewheel')) return;
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    
+
     if (Math.abs(delta) < 5) return;
 
     e.preventDefault();
@@ -186,7 +197,7 @@ class FacelessCarousel extends BaseElement {
       } else {
         this.prev();
       }
-      
+
       this.state.isWheelLocked = true;
       this.state.wheelAccumulator = 0;
 
@@ -204,47 +215,60 @@ class FacelessCarousel extends BaseElement {
 
   _measure() {
     const parentWidth = this.viewport.getBoundingClientRect().width;
+    this.state.viewportWidth = parentWidth;
     if (parentWidth === 0) return;
 
     const style = getComputedStyle(this);
     const items = parseFloat(this.getAttribute('items-per-view')) || parseFloat(style.getPropertyValue('--items-per-view')) || 1;
     const gap = parseFloat(this.getAttribute('gap')) || parseFloat(style.getPropertyValue('--gap')) || 0;
-    
+
+    const firstChild = this.children[0];
+    let childMargin = 0;
+    if (firstChild) {
+      const cs = getComputedStyle(firstChild);
+      childMargin = (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.marginRight) || 0);
+    }
+
     const peekAttr = this.getAttribute('peek');
-    const peekPx = this._parsePeekValue(peekAttr, parentWidth);
+    const peekPx = this._parsePeekValue(peekAttr, this.state.viewportWidth);
 
     const totalGapWidth = gap * (Math.max(1, Math.ceil(items)) - 1);
-    const slideWidth = (parentWidth - totalGapWidth - peekPx) / items;
-    
+    const totalMarginWidth = childMargin * items;
+    const slideWidth = (this.state.viewportWidth - totalGapWidth - totalMarginWidth - peekPx) / items;
+
     this.style.setProperty('--internal-slide-width', `${slideWidth}px`);
     this.style.setProperty('--gap', `${gap}px`);
-    this.state.stride = slideWidth + gap;
+    this.state.stride = slideWidth + gap + childMargin;
 
     const peekType = this.getAttribute('peek-type') || 'hard';
     if (peekType === 'fade' && peekPx > 0) {
-      const fadeStart = parentWidth - peekPx;
+      const fadeStart = this.state.viewportWidth - peekPx;
       this.style.setProperty('--mask-gradient', `linear-gradient(to right, black 0px, black ${fadeStart}px, transparent ${parentWidth}px)`);
     } else {
       this.style.setProperty('--mask-gradient', 'none');
     }
-    
+
     this.goTo(this.state.currentIndex, false);
   }
 
   _syncActiveStates() {
-    const { currentIndex, realCount, cloneCount } = this.state;
+    const { currentIndex, realCount, cloneCount, stride } = this.state;
+    if (!stride) return;
 
     const style = getComputedStyle(this);
     const itemsVisible =
-      parseFloat(this.getAttribute('items-per-view')) || 
+      parseFloat(this.getAttribute('items-per-view')) ||
       parseFloat(style.getPropertyValue('--items-per-view')) || 1;
-      
+
     const realIndex = ((currentIndex % realCount) + realCount) % realCount;
 
     const dots = this.dotsContainer.querySelectorAll('.dot');
     dots.forEach((dot, idx) => dot.classList.toggle('active', idx === realIndex));
 
-    const viewportStart = cloneCount + currentIndex;
+    const startOfReal = -(cloneCount * stride);
+    const floatIndex = -(this.state.currentTranslate - startOfReal) / stride;
+
+    const viewportStart = cloneCount + floatIndex;
     const viewportEnd = viewportStart + itemsVisible;
 
     Array.from(this.children).forEach((el, i) => {
@@ -267,6 +291,29 @@ class FacelessCarousel extends BaseElement {
     });
   }
 
+  _deferredInit() {
+    // Wait for the page to fully load so that frameworks (React/Gatsby)
+    // have hydrated dynamic content (e.g. gatsby-image <picture> elements)
+    // before we clone slides. Without this, cloneNode captures incomplete DOM.
+    if (document.readyState === 'complete') {
+      this._init();
+    } else {
+      window.addEventListener('load', () => this._init(), { once: true });
+    }
+  }
+
+  _fixClonedSlide(clone) {
+    // Gatsby images in clones are invisible to React — the lazy-load fade-in
+    // never fires. Fix by forcing the main image visible and hiding the placeholder.
+    clone.querySelectorAll('[data-main-image]').forEach(img => {
+      img.style.opacity = '1';
+      img.setAttribute('loading', 'eager');
+    });
+    clone.querySelectorAll('[data-placeholder-image]').forEach(ph => {
+      ph.style.opacity = '0';
+    });
+  }
+
   _init() {
     this.state.isInitializing = true;
     this.querySelectorAll('.clone').forEach(el => el.remove());
@@ -275,17 +322,18 @@ class FacelessCarousel extends BaseElement {
 
     rawSlides.forEach((slide, idx) => slide.setAttribute('data-slide-idx', idx));
     this.state.realCount = rawSlides.length;
-    
+
     const loop = this.hasAttribute('loop');
     const itemsPerView = parseFloat(this.getAttribute('items-per-view')) || parseFloat(getComputedStyle(this).getPropertyValue('--items-per-view')) || 1;
     if (loop) {
-      const buffer = Math.ceil(itemsPerView) + 2; 
+      const buffer = Math.ceil(itemsPerView) + 2;
       this.state.cloneCount = buffer;
       for (let i = 0; i < buffer; i++) {
         const originalIdx = i % this.state.realCount;
         const clone = rawSlides[originalIdx].cloneNode(true);
         clone.classList.add('clone');
         clone.setAttribute('data-slide-idx', originalIdx);
+        this._fixClonedSlide(clone);
         this.appendChild(clone);
       }
       for (let i = 0; i < buffer; i++) {
@@ -293,6 +341,7 @@ class FacelessCarousel extends BaseElement {
         const clone = rawSlides[index].cloneNode(true);
         clone.classList.add('clone');
         clone.setAttribute('data-slide-idx', index);
+        this._fixClonedSlide(clone);
         this.prepend(clone);
       }
     } else { this.state.cloneCount = 0; }
@@ -307,7 +356,7 @@ class FacelessCarousel extends BaseElement {
 
   _raf() {
     const { isDragging, currentTranslate, targetTranslate, stride, realCount, cloneCount } = this.state;
-  
+
     if (!stride || this.state.isInitializing) {
       this.rafId = requestAnimationFrame(this._raf);
       return;
@@ -340,12 +389,12 @@ class FacelessCarousel extends BaseElement {
     }
 
     this.track.style.transform = `translate3d(${this.state.currentTranslate}px, 0, 0)`;
-    
+
     const startOfReal = -(cloneCount * stride);
     const relativePos = this.state.currentTranslate - startOfReal;
     this.state.currentIndex = Math.round(-(relativePos / stride));
 
-    this._syncActiveStates(); 
+    this._syncActiveStates();
     this.rafId = requestAnimationFrame(this._raf);
   }
 

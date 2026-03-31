@@ -119,4 +119,69 @@ Use CSS Variables and Shadow Parts to style internal elements:
 - `::part(viewport)` – The clipping container  
 - `::part(track)` – The sliding track  
 - `::part(dot)` – Individual pagination dots  
-- `::part(dot-active)` – The active pill-shaped dot  
+- `::part(dot-active)` – The active pill-shaped dot
+
+---
+
+## 11. Internal Method Reference
+
+Complete reference for every method in the `FacelessCarousel` class.
+
+### Lifecycle
+
+| Method | Purpose |
+|---|---|
+| `constructor()` | Initializes Shadow DOM, state object, config constants, and binds all event handler methods |
+| `observedAttributes` (static) | Declares the HTML attributes that trigger `attributeChangedCallback` |
+| `attributeChangedCallback()` | Re-measures layout when any observed attribute changes |
+| `connectedCallback()` | Sets up event listeners, ResizeObserver, slot change handling, autoplay pause-on-hover/focus, fallback init for deferred script loading, and starts the RAF loop |
+| `disconnectedCallback()` | Tears down all timers, observers, and global event listeners |
+
+### Core Logic
+
+| Method | Purpose |
+|---|---|
+| `_measure()` | Calculates slide width, stride, gap, peek, and mask gradient from attributes, CSS variables, and viewport size; updates CSS custom properties |
+| `_syncActiveStates()` | Updates `data-active`, `data-visible`, `aria-hidden`, and `tabindex` on every slide (including clones) based on current scroll position |
+| `_raf()` | `requestAnimationFrame` loop — interpolates `currentTranslate` toward `targetTranslate` using elasticity, handles continuous-scroll (speed) mode, and teleports position at loop boundaries |
+| `_parsePeekValue(value, parentWidth)` | Converts a peek attribute value (px or %) to a pixel number |
+
+### Initialization
+
+| Method | Purpose |
+|---|---|
+| `_deferredInit()` | Delays `_init()` until `document.readyState === 'complete'` so frameworks (React, Gatsby) finish hydrating dynamic content before slides are cloned |
+| `_init()` | Main initialization: indexes slides with `data-slide-idx`, creates prepend/append clone buffers for loop mode, renders dots, triggers first measurement, starts autoplay |
+| `_fixClonedSlide(clone)` | Patches images inside cloned slides — forces `opacity: 1`, `loading="eager"`, and resolves `data-src`/`data-lazy` attributes since clones lose framework JS (hydration, IntersectionObserver, onLoad handlers) |
+| `_watchOriginals()` | Attaches a MutationObserver to original slides; when frameworks add child elements after initial render, triggers `_refreshClones()` to re-clone with complete DOM |
+| `_refreshClones()` | Replaces every existing clone with a fresh `cloneNode(true)` copy of its original slide, preserving visibility and active state |
+
+### Event Handlers
+
+| Method | Purpose |
+|---|---|
+| `_onDragStart(e)` | Captures starting pointer position, records current translate, and attaches global move listeners |
+| `_onDragMove(e)` | Updates `currentTranslate` based on pointer delta during drag |
+| `_onDragEnd()` | Snaps to the nearest slide index, removes global move listeners, restarts autoplay if enabled |
+| `_onKeyDown(e)` | Handles ArrowLeft/ArrowRight keyboard navigation |
+| `_onFocusIn(e)` | When an interactive element inside a slide receives focus, scrolls that slide into view |
+| `_onWheel(e)` | Accumulates mousewheel/trackpad delta and triggers `next()`/`prev()` once the threshold is reached, with a 400 ms lock to prevent rapid-fire navigation |
+| `_onResize()` | Delegates to `_measure()` when the element is resized |
+
+### Public API
+
+| Method | Purpose |
+|---|---|
+| `goTo(index, animate)` | Navigates to a specific slide index; clamps to bounds in non-loop mode; optionally animates or jumps instantly |
+| `next()` | Advances to the next slide |
+| `prev()` | Returns to the previous slide |
+
+### Autoplay & UI
+
+| Method | Purpose |
+|---|---|
+| `_startAutoplay()` | Starts an interval timer that calls `next()` on each tick; stops at the last slide in non-loop mode |
+| `_stopAutoplay()` | Clears the autoplay interval timer |
+| `_setPaused(paused)` | Pauses or resumes autoplay in response to hover and focus events |
+| `_toggleDots()` | Shows or hides the dots container based on the `show-dots` attribute |
+| `_renderDots()` | Creates pagination dot buttons (one per real slide) with click-to-navigate behavior |

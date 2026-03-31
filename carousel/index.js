@@ -136,8 +136,6 @@ class FacelessCarousel extends BaseElement {
 
     this.viewport.addEventListener('mousedown', this._onDragStart);
     this.viewport.addEventListener('touchstart', this._onDragStart, { passive: false });
-    window.addEventListener('mousemove', this._onDragMove);
-    window.addEventListener('touchmove', this._onDragMove, { passive: false });
     window.addEventListener('mouseup', this._onDragEnd);
     window.addEventListener('touchend', this._onDragEnd);
 
@@ -152,9 +150,6 @@ class FacelessCarousel extends BaseElement {
       if (!this.state.isInitializing) this._deferredInit();
     });
 
-    // Fallback for defer/async load: when <script type="module"> loads after the
-    // HTML is fully parsed, light DOM children are already assigned to the slot
-    // before this listener was added — slotchange may not fire in that case.
     if (this.children.length > 0 && !this.state.isInitializing) {
       this._deferredInit();
     }
@@ -172,10 +167,12 @@ class FacelessCarousel extends BaseElement {
     cancelAnimationFrame(this.rafId);
     this._stopAutoplay();
     if (this.resizeObserver) this.resizeObserver.disconnect();
-    window.removeEventListener('mousemove', this._onDragMove);
-    window.removeEventListener('touchmove', this._onDragMove);
+    if (this._hydrationObserver) this._hydrationObserver.disconnect();
+    clearTimeout(this._hydrationTimer);
     window.removeEventListener('mouseup', this._onDragEnd);
     window.removeEventListener('touchend', this._onDragEnd);
+    window.removeEventListener('mousemove', this._onDragMove);
+    window.removeEventListener('touchmove', this._onDragMove);
   }
 
   _onWheel(e) {
@@ -239,6 +236,7 @@ class FacelessCarousel extends BaseElement {
     this.style.setProperty('--internal-slide-width', `${slideWidth}px`);
     this.style.setProperty('--gap', `${gap}px`);
     this.state.stride = slideWidth + gap + childMargin;
+    this.state.itemsVisible = items;
 
     const peekType = this.getAttribute('peek-type') || 'hard';
     if (peekType === 'fade' && peekPx > 0) {
@@ -252,13 +250,8 @@ class FacelessCarousel extends BaseElement {
   }
 
   _syncActiveStates() {
-    const { currentIndex, realCount, cloneCount, stride } = this.state;
+    const { currentIndex, realCount, cloneCount, stride, itemsVisible } = this.state;
     if (!stride) return;
-
-    const style = getComputedStyle(this);
-    const itemsVisible =
-      parseFloat(this.getAttribute('items-per-view')) ||
-      parseFloat(style.getPropertyValue('--items-per-view')) || 1;
 
     const realIndex = ((currentIndex % realCount) + realCount) % realCount;
 
@@ -269,14 +262,19 @@ class FacelessCarousel extends BaseElement {
     const floatIndex = -(this.state.currentTranslate - startOfReal) / stride;
 
     const viewportStart = cloneCount + floatIndex;
-    const viewportEnd = viewportStart + itemsVisible;
+    const viewportEnd = viewportStart + (itemsVisible || 1);
 
     Array.from(this.children).forEach((el, i) => {
       const elSlideIdx = parseInt(el.getAttribute('data-slide-idx'));
-      if (elSlideIdx === realIndex) el.setAttribute('data-active', 'true');
-      else el.removeAttribute('data-active');
+      const wasActive = el.hasAttribute('data-active');
+      const isActive = elSlideIdx === realIndex;
+      if (isActive && !wasActive) el.setAttribute('data-active', 'true');
+      else if (!isActive && wasActive) el.removeAttribute('data-active');
 
       const isVisible = i >= Math.floor(viewportStart) - 1 && i < Math.ceil(viewportEnd) + 1;
+      const wasVisible = el.hasAttribute('data-visible');
+
+      if (isVisible === wasVisible) return;
 
       if (isVisible) {
         el.setAttribute('data-visible', 'true');
@@ -292,9 +290,6 @@ class FacelessCarousel extends BaseElement {
   }
 
   _deferredInit() {
-    // Wait for the page to fully load so that frameworks (React/Gatsby)
-    // have hydrated dynamic content (e.g. gatsby-image <picture> elements)
-    // before we clone slides. Without this, cloneNode captures incomplete DOM.
     if (document.readyState === 'complete') {
       this._init();
     } else {
@@ -303,14 +298,13 @@ class FacelessCarousel extends BaseElement {
   }
 
   _fixClonedSlide(clone) {
-    // Gatsby images in clones are invisible to React — the lazy-load fade-in
-    // never fires. Fix by forcing the main image visible and hiding the placeholder.
-    clone.querySelectorAll('[data-main-image]').forEach(img => {
+    clone.querySelectorAll('img').forEach(img => {
       img.style.opacity = '1';
       img.setAttribute('loading', 'eager');
-    });
-    clone.querySelectorAll('[data-placeholder-image]').forEach(ph => {
-      ph.style.opacity = '0';
+      const lazySrc = img.getAttribute('data-src') || img.getAttribute('data-lazy');
+      if (lazySrc && !img.getAttribute('src')) {
+        img.setAttribute('src', lazySrc);
+      }
     });
   }
 
@@ -352,6 +346,47 @@ class FacelessCarousel extends BaseElement {
       this.state.isInitializing = false;
       if (this.hasAttribute('autoplay')) this._startAutoplay();
     }, 0);
+
+    this._watchOriginals();
+  }
+
+  _watchOriginals() {
+    if (this._hydrationObserver) this._hydrationObserver.disconnect();
+
+    const rawSlides = Array.from(this.children).filter(el => !el.classList.contains('clone'));
+
+    this._hydrationObserver = new MutationObserver(() => {
+      clearTimeout(this._hydrationTimer);
+      this._hydrationTimer = setTimeout(() => {
+        this._hydrationObserver.disconnect();
+        this._refreshClones();
+      }, 200);
+    });
+
+    rawSlides.forEach(slide => {
+      this._hydrationObserver.observe(slide, { childList: true, subtree: true });
+    });
+  }
+
+  _refreshClones() {
+    const rawSlides = Array.from(this.children).filter(el => !el.classList.contains('clone'));
+    const clones = Array.from(this.querySelectorAll('.clone'));
+
+    clones.forEach(clone => {
+      const originalIdx = parseInt(clone.getAttribute('data-slide-idx'));
+      const original = rawSlides[originalIdx];
+      if (!original) return;
+
+      const newClone = original.cloneNode(true);
+      newClone.classList.add('clone');
+      newClone.setAttribute('data-slide-idx', originalIdx);
+      this._fixClonedSlide(newClone);
+
+      if (clone.hasAttribute('data-visible')) newClone.setAttribute('data-visible', 'true');
+      if (clone.hasAttribute('data-active')) newClone.setAttribute('data-active', 'true');
+
+      clone.replaceWith(newClone);
+    });
   }
 
   _raf() {
@@ -416,6 +451,8 @@ class FacelessCarousel extends BaseElement {
     this.state.isDragging = true;
     this.state.startX = e.pageX || (e.touches ? e.touches[0].pageX : 0);
     this.state.prevTranslate = this.state.currentTranslate;
+    window.addEventListener('mousemove', this._onDragMove);
+    window.addEventListener('touchmove', this._onDragMove, { passive: false });
   }
 
   _onDragMove(e) {
@@ -427,6 +464,8 @@ class FacelessCarousel extends BaseElement {
   _onDragEnd() {
     if (!this.state.isDragging) return;
     this.state.isDragging = false;
+    window.removeEventListener('mousemove', this._onDragMove);
+    window.removeEventListener('touchmove', this._onDragMove);
     const { currentTranslate, stride, cloneCount } = this.state;
     const relativePos = currentTranslate - (-(cloneCount * stride));
     this.goTo(Math.round(-(relativePos / stride)));

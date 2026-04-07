@@ -51,7 +51,7 @@ const sections = [
       'The markup below is exactly what a server emits — five real slides, nothing else. After JS loads the component clones them automatically.',
     html: `
     <div class="carousel-wrapper">
-      <button class="nav-btn prev" onclick="document.getElementById('ssr-hero').prev()" aria-label="Previous slide">
+      <button class="nav-btn prev" related-carousel="ssr-hero" aria-label="Previous slide">
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
       </button>
 
@@ -78,7 +78,7 @@ const sections = [
         </div>
       </faceless-carousel>
 
-      <button class="nav-btn next" onclick="document.getElementById('ssr-hero').next()" aria-label="Next slide">
+      <button class="nav-btn next" related-carousel="ssr-hero" aria-label="Next slide">
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
       </button>
     </div>`,
@@ -133,10 +133,10 @@ const sections = [
   {
     title: '4. External Navigation (Buttons)',
     description:
-      'The buttons use the public API (<code>.next()</code> / <code>.prev()</code>) of the component.',
+      'Buttons use the <code>related-carousel</code> attribute to declare their target. The component wires up click listeners automatically — no <code>onclick</code> in markup.',
     html: `
     <div class="carousel-wrapper">
-      <button class="nav-btn prev" onclick="document.getElementById('api-demo').prev()" aria-label="Previous slide">
+      <button class="nav-btn prev" related-carousel="api-demo" aria-label="Previous slide">
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
       </button>
 
@@ -147,7 +147,7 @@ const sections = [
         <div class="slide" style="background: #dbeafe;">Slide D</div>
       </faceless-carousel>
 
-      <button class="nav-btn next" onclick="document.getElementById('api-demo').next()" aria-label="Next slide">
+      <button class="nav-btn next" related-carousel="api-demo" aria-label="Next slide">
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
       </button>
     </div>`,

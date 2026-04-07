@@ -106,6 +106,8 @@ class FacelessCarousel extends BaseElement {
 
     this.config = { friction: 0.92, elasticity: 0.12, wheelThreshold: 50 };
 
+    this._externalNavListeners = [];
+
     this._raf = this._raf.bind(this);
     this._onResize = this._onResize.bind(this);
     this._onDragStart = this._onDragStart.bind(this);
@@ -154,6 +156,8 @@ class FacelessCarousel extends BaseElement {
       this._deferredInit();
     }
 
+    this._setupExternalNavButtons();
+
     this.addEventListener('mouseenter', () => this._setPaused(true));
     this.addEventListener('mouseleave', () => this._setPaused(false));
     this.addEventListener('focusin', () => this._setPaused(true));
@@ -173,6 +177,8 @@ class FacelessCarousel extends BaseElement {
     window.removeEventListener('touchend', this._onDragEnd);
     window.removeEventListener('mousemove', this._onDragMove);
     window.removeEventListener('touchmove', this._onDragMove);
+    this._externalNavListeners.forEach(({ el, handler }) => el.removeEventListener('click', handler));
+    this._externalNavListeners = [];
   }
 
   _onWheel(e) {
@@ -286,6 +292,18 @@ class FacelessCarousel extends BaseElement {
         el.setAttribute('aria-hidden', 'true');
         el.querySelectorAll('a, button, input').forEach(c => c.setAttribute('tabindex', '-1'));
       }
+    });
+  }
+
+  _setupExternalNavButtons() {
+    if (!this.id) return;
+    document.querySelectorAll('[related-carousel="' + this.id + '"]').forEach(el => {
+      const handler = () => {
+        if (el.classList.contains('prev')) this.prev();
+        else if (el.classList.contains('next')) this.next();
+      };
+      el.addEventListener('click', handler);
+      this._externalNavListeners.push({ el, handler });
     });
   }
 

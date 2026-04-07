@@ -69,9 +69,42 @@ By setting the `speed` attribute, the carousel switches to a smooth, constant mo
 ## 7. Public API
 The component exposes a clean API for external control:
 
-- `next()` – Advance to the next slide  
-- `prev()` – Go back to the previous slide  
-- `goTo(index)` – Jump directly to a specific index  
+- `next()` – Advance to the next slide
+- `prev()` – Go back to the previous slide
+- `goTo(index)` – Jump directly to a specific index
+
+### Declarative External Navigation
+
+Instead of calling the JS API from inline `onclick` handlers, buttons can declare their relationship to a carousel via the `related-carousel` attribute. The component discovers these buttons on connect and wires up the click listeners automatically.
+
+**Button requirements:**
+- `related-carousel="<id>"` — must match the carousel's `id`
+- Class `prev` or `next` — declares the navigation direction
+
+```html
+<button class="nav-btn prev" related-carousel="my-carousel" aria-label="Previous">‹</button>
+
+<faceless-carousel id="my-carousel" loop show-dots>
+  <div class="slide">Slide 1</div>
+  <div class="slide">Slide 2</div>
+  <div class="slide">Slide 3</div>
+</faceless-carousel>
+
+<button class="nav-btn next" related-carousel="my-carousel" aria-label="Next">›</button>
+```
+
+**Compared to inline handlers:**
+
+| | `related-carousel` (declarative) | `onclick` (imperative) |
+|---|---|---|
+| Markup | Clean, no JS in HTML | Couples HTML to a global ID |
+| Cleanup | Automatic on `disconnectedCallback` | Manual |
+| Carousel without `id` | Silent no-op | JS error |
+
+**Constraints:**
+- Buttons must be present in the DOM when the carousel connects. Buttons added later are not picked up (no MutationObserver).
+- If the carousel has no `id`, the feature is silently disabled.
+- A button with neither `prev` nor `next` class has no effect.
 
 ---
 
@@ -135,7 +168,7 @@ Complete reference for every method in the `FacelessCarousel` class.
 | `observedAttributes` (static) | Declares the HTML attributes that trigger `attributeChangedCallback` |
 | `attributeChangedCallback()` | Re-measures layout when any observed attribute changes |
 | `connectedCallback()` | Sets up event listeners, ResizeObserver, slot change handling, autoplay pause-on-hover/focus, fallback init for deferred script loading, and starts the RAF loop |
-| `disconnectedCallback()` | Tears down all timers, observers, and global event listeners |
+| `disconnectedCallback()` | Tears down all timers, observers, global event listeners, and external nav button click handlers |
 
 ### Core Logic
 
@@ -155,6 +188,12 @@ Complete reference for every method in the `FacelessCarousel` class.
 | `_fixClonedSlide(clone)` | Patches images inside cloned slides — forces `opacity: 1`, `loading="eager"`, and resolves `data-src`/`data-lazy` attributes since clones lose framework JS (hydration, IntersectionObserver, onLoad handlers) |
 | `_watchOriginals()` | Attaches a MutationObserver to original slides; when frameworks add child elements after initial render, triggers `_refreshClones()` to re-clone with complete DOM |
 | `_refreshClones()` | Replaces every existing clone with a fresh `cloneNode(true)` copy of its original slide, preserving visibility and active state |
+
+### External Navigation
+
+| Method | Purpose |
+|---|---|
+| `_setupExternalNavButtons()` | Queries all `[related-carousel="<id>"]` elements in the document, binds a click handler to each that calls `prev()` or `next()` based on the button's `prev`/`next` class, and stores the `{ el, handler }` pairs in `_externalNavListeners` for cleanup |
 
 ### Event Handlers
 

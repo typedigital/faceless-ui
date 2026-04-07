@@ -59,7 +59,7 @@ faceless-carousel {
 }
 ```
 
-The component handles everything else: touch drag with momentum, infinite loop cloning, pagination dots, autoplay with pause-on-hover, keyboard navigation, and screen reader attributes.
+The component handles everything else: touch drag with momentum, infinite loop cloning, pagination dots, autoplay with pause-on-hover, full keyboard navigation, and comprehensive screen reader support.
 
 ---
 
@@ -83,7 +83,7 @@ Faceless UI is the right choice when your product has a strong, bespoke design a
 - **Design Agnostic** — Works with Tailwind, CSS Modules, plain CSS, or any other styling solution.
 - **Framework Agnostic** — Vanilla Web Components. Drop into Astro, Next.js, Nuxt, SvelteKit, or plain HTML equally.
 - **Universal Rendering** — Safe in SSR, SSG, Node.js, Deno, and Edge runtimes. No configuration required.
-- **Accessible by Default** — `aria-hidden`, `tabindex`, focus management, and keyboard navigation handled automatically.
+- **Accessible by Default** — Full ARIA landmark navigation, per-slide labeling, live region announcements, keyboard traversal of all slides, and focus-driven scroll sync — all built in, zero config required. See each component's docs for details.
 - **Zero Dependencies** — No npm install, no build step, no runtime overhead.
 
 ---
@@ -107,6 +107,25 @@ The component communicates state back to your elements via data attributes:
 - `data-visible` — set on all slides within the viewport
 
 Use these as CSS hooks. The component does not impose any visual output.
+
+---
+
+## Built-in Accessibility
+
+Every component ships with full keyboard and screen reader support out of the box — no configuration, no ARIA attributes for the consumer to add.
+
+| Feature | What the component does |
+|---|---|
+| **Landmark navigation** | Sets `role="region"` + `aria-roledescription` so screen reader users can jump past the component entirely |
+| **Per-item labeling** | Each child gets `role="group"` + `aria-roledescription="slide"` + `aria-label="Slide N of M"` automatically |
+| **Live region** | A visually-hidden `aria-live="polite"` region announces the current position after every navigation |
+| **Full Tab access** | All focusable elements across all items (including off-screen ones) remain in the tab order; focusing an off-screen item scrolls it into view |
+| **Clone isolation** | Loop-mode clones are always `aria-hidden="true"` with `tabindex="-1"` — never announced, never reachable via Tab |
+| **Autoplay pause** | Autoplay automatically pauses on `mouseenter` and `focusin`, resumes on leave — screen reader and keyboard users are never interrupted |
+
+Consumers can override the default `aria-label` with a meaningful description (e.g. `aria-label="Featured products"`). Everything else is handled internally.
+
+Reference: [Chrome accessible carousel guide](https://developer.chrome.com/blog/accessible-carousel)
 
 ---
 

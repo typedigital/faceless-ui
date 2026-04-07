@@ -41,7 +41,7 @@ Single class `FacelessCarousel extends HTMLElement`, registered as `<faceless-ca
 - Continuous `requestAnimationFrame` loop (`_raf`) drives all animation — interpolates `currentTranslate` toward `targetTranslate` using elasticity
 - Loop mode works by cloning slides (prepend + append buffers of `ceil(itemsPerView) + 2` clones) and seamlessly teleporting position when boundaries are crossed
 - `_measure()` recalculates slide dimensions from viewport width, CSS variables, and attributes — called on resize and attribute changes
-- `_syncActiveStates()` manages `data-active`, `data-visible`, `aria-hidden`, and `tabindex` on every frame
+- `_syncActiveStates()` manages `data-active` and `data-visible` on every frame (visual state only — ARIA is handled separately by `_applyA11yDefaults`)
 
 **Public API:** `next()`, `prev()`, `goTo(index, animate = true)`
 
@@ -115,3 +115,86 @@ Web Components rely on `document`, `window`, `ResizeObserver`, `requestAnimation
 ### Documentation
 
 Each component's `docs.md` must include a "Universal Rendering" section (see `carousel/docs.md` § 9 or `accordion/docs.md` § 9 as reference).
+
+## Accessibility (A11y)
+
+Every component must ship with full keyboard and screen reader support. No ARIA responsibility should fall on the consumer. The following patterns are mandatory for all new components.
+
+### Required Pattern
+
+Apply these rules to every new component. Reference implementation: `carousel/index.js` and `carousel/docs.md` § 8.
+
+**1. Host landmark — in `connectedCallback`, after `tabindex`:**
+```js
+this.setAttribute('role', 'region');
+this.setAttribute('aria-roledescription', '<component-type>');  // e.g. 'carousel', 'accordion'
+if (!this.hasAttribute('aria-label')) this.setAttribute('aria-label', '<ComponentType>');
+```
+This makes the component a named landmark so screen reader users can skip past it entirely.
+
+**2. Per-item ARIA — in `_init`, after indexing children:**
+```js
+rawItems.forEach((item, idx) => {
+  item.setAttribute('role', 'group');
+  item.setAttribute('aria-roledescription', '<item-type>');  // e.g. 'slide', 'panel'
+  item.setAttribute('aria-label', `<ItemType> ${idx + 1} of ${total}`);
+});
+```
+
+**3. Live region — announce state changes:**
+Add a visually-hidden `aria-live="polite"` element in the Shadow DOM. Update its `textContent` on every navigation/state change so screen readers announce the new position.
+
+Shadow DOM style:
+```css
+.sr-announcer {
+  position: absolute; width: 1px; height: 1px; padding: 0;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+```
+
+Shadow DOM element:
+```html
+<div class="sr-announcer" aria-live="polite" aria-atomic="true"></div>
+```
+
+**4. Separate visual state from ARIA state:**
+- Per-frame loops (`_syncActiveStates`, `_raf`) must only manage **visual** data attributes (`data-active`, `data-visible`).
+- ARIA attributes (`aria-hidden`, `tabindex`) must be set **once** at init and after structural changes (e.g. clone refresh), never on every frame.
+- Use a dedicated `_applyA11yDefaults()` method for this.
+
+**5. Clone isolation (loop mode):**
+```js
+_applyA11yDefaults() {
+  Array.from(this.children).forEach(el => {
+    if (el.classList.contains('clone')) {
+      el.setAttribute('aria-hidden', 'true');
+      el.querySelectorAll('a, button, input').forEach(c => c.setAttribute('tabindex', '-1'));
+    } else {
+      el.removeAttribute('aria-hidden');
+      el.querySelectorAll('a, button, input').forEach(c => c.removeAttribute('tabindex'));
+    }
+  });
+}
+```
+Call this at the end of `_init()` and at the end of `_refreshClones()`.
+
+**6. Focus-driven scroll — `_onFocusIn`:**
+When any focusable element receives focus, scroll/navigate the component to bring that item fully into view. This ensures Tab navigation works for off-screen items.
+
+**7. Autoplay pause on interaction:**
+If the component has autoplay or automatic state changes, pause on `mouseenter` and `focusin`, resume on `mouseleave` and `focusout`.
+
+### Key Principle: Visual State vs. A11y State
+
+This separation is critical and was a hard-won lesson from the carousel implementation:
+
+| Concern | Managed by | When updated | Attributes |
+|---|---|---|---|
+| Visual | `_syncActiveStates()` | Every frame (RAF) | `data-active`, `data-visible` |
+| Accessibility | `_applyA11yDefaults()` | Init + structural changes | `aria-hidden`, `tabindex`, `role`, `aria-label` |
+
+Conflating these (e.g. setting `aria-hidden` in a per-frame loop based on scroll position) blocks keyboard access to off-screen items and breaks screen reader navigation.
+
+### Documentation
+
+Each component's `docs.md` must include an "Accessibility" section documenting all ARIA attributes, keyboard shortcuts, screen reader behavior, and focus management (see `carousel/docs.md` § 8 as reference).

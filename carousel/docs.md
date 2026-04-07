@@ -109,10 +109,126 @@ Instead of calling the JS API from inline `onclick` handlers, buttons can declar
 ---
 
 ## 8. Accessibility (A11y)
-- **Keyboard Support:** Full arrow key navigation  
-- **Screen Readers:** Automatic management of `aria-hidden` and `tabindex` for off-screen slides  
-- **Focus Sync:** Automatically scrolls slides into view when internal elements (links/buttons) receive focus  
-- **Reduced Motion:** Respects system-level `prefers-reduced-motion` settings  
+
+`<faceless-carousel>` implements the accessibility patterns recommended by the [Chrome accessible carousel guide](https://developer.chrome.com/blog/accessible-carousel) and ARIA Authoring Practices.
+
+---
+
+### 8.1 Landmark & Skip Navigation
+
+The host element is automatically decorated as a named ARIA landmark:
+
+```html
+role="region"
+aria-roledescription="carousel"
+aria-label="Carousel"  <!-- default, override with your own -->
+```
+
+Screen reader users can jump past the carousel entirely using their landmark navigation shortcut without entering the slides:
+
+| Screen Reader | Shortcut |
+|---|---|
+| NVDA | `R` (next region) |
+| JAWS | `;` (next region) |
+| VoiceOver | `VO+U` → navigate to next region |
+
+**Providing a meaningful label** (strongly recommended):
+
+```html
+<faceless-carousel aria-label="Featured products" loop show-dots>
+  ...
+</faceless-carousel>
+```
+
+The `aria-label` attribute is only set as a fallback (`"Carousel"`) if the consumer does not provide one. A descriptive label makes the landmark immediately understandable to screen reader users.
+
+---
+
+### 8.2 Per-Slide ARIA
+
+Each original slide is annotated automatically during initialisation:
+
+```html
+<!-- What the component adds to every slide -->
+role="group"
+aria-roledescription="slide"
+aria-label="Slide 1 of 5"
+```
+
+Screen readers announce each slide as **"Slide 1 of 5, group"**, giving users a clear sense of position and total count without requiring any markup from the consumer.
+
+Clone slides (created internally for loop mode) always carry `aria-hidden="true"` and are fully removed from the accessibility tree. They are never announced or reachable via Tab.
+
+---
+
+### 8.3 Live Region — Position Announcements
+
+A visually-hidden `aria-live="polite"` region in the Shadow DOM is updated on every `goTo()` call:
+
+```
+"Slide 3 of 6"
+```
+
+This fires for **all** navigation methods: arrow keys, dot clicks, `related-carousel` buttons, drag-snap, and autoplay. Screen reader users always hear where they are after any transition, without the live region interrupting ongoing speech.
+
+---
+
+### 8.4 Keyboard Navigation
+
+| Key | Behaviour |
+|---|---|
+| `Tab` | Moves through all interactive elements (`a`, `button`, `input`) across **all** slides, including off-screen ones |
+| `Shift+Tab` | Moves backwards through the same |
+| `ArrowRight` | Advances one slide (when the carousel host has focus) |
+| `ArrowLeft` | Returns one slide (when the carousel host has focus) |
+
+**Off-screen slide access via Tab** is possible because off-screen slides use `opacity: 0` + `pointer-events: none` for visual hiding — not `visibility: hidden`, which would remove elements from the tab order. As soon as a Tab keystroke reaches a child inside an off-screen slide, `_onFocusIn` fires and scrolls that slide fully into view.
+
+---
+
+### 8.5 Focus Sync
+
+When any focusable element inside a slide receives focus (via Tab, Shift+Tab, or a screen reader cursor), the carousel automatically scrolls that slide fully into view by calling `goTo(index)`. This applies regardless of whether the slide is currently visible.
+
+This means consumers do not need `scroll-into-view` logic or custom focus handlers — the component owns the scroll-on-focus behaviour entirely.
+
+---
+
+### 8.6 Tab Order Management
+
+The component maintains two separate groups of managed focusable elements:
+
+**Group 1 — Slide-internal elements** (`a`, `button`, `input` inside slides):
+- Original slides: always in natural tab order (no `tabindex` attribute set)
+- Clone slides: always `tabindex="-1"`, never reachable via Tab
+
+**Group 2 — External nav buttons** (`[related-carousel]`):
+- On `connectedCallback`: `tabindex` is removed (buttons are in natural tab order)
+- On `disconnectedCallback`: `tabindex="-1"` is set (buttons are removed from tab order, as they have no target)
+
+Both groups are managed by `_applyA11yDefaults()`, which runs on init and after every clone refresh.
+
+---
+
+### 8.7 Autoplay & Focus
+
+Autoplay is automatically paused when:
+- The mouse enters the carousel (`mouseenter`)
+- Any element inside the carousel receives focus (`focusin`)
+
+Autoplay resumes when:
+- The mouse leaves (`mouseleave`)
+- Focus leaves the carousel (`focusout`)
+
+This ensures autoplay never interferes with keyboard or screen reader navigation.
+
+---
+
+### 8.8 Loop Teleport — Transition Suppression
+
+In loop mode, the track position is teleported by one full `totalWidth` when it crosses a boundary, creating the illusion of infinite scroll. Without special handling, this teleport causes `data-visible` to change simultaneously on multiple slides, triggering the `opacity` fade transition on all of them — visible as a flash/flicker.
+
+The component solves this with `_suppressTransition()`: on every teleport frame, the CSS class `no-transition` is added to the host. This activates the rule `:host(.no-transition) ::slotted(*) { transition: none !important }`, which disables all transitions for that single frame. The class is removed on the next `requestAnimationFrame`, restoring smooth transitions for all subsequent navigation.
 
 ---
 
@@ -167,16 +283,16 @@ Complete reference for every method in the `FacelessCarousel` class.
 | `constructor()` | Initializes Shadow DOM, state object, config constants, and binds all event handler methods |
 | `observedAttributes` (static) | Declares the HTML attributes that trigger `attributeChangedCallback` |
 | `attributeChangedCallback()` | Re-measures layout when any observed attribute changes |
-| `connectedCallback()` | Sets up event listeners, ResizeObserver, slot change handling, autoplay pause-on-hover/focus, fallback init for deferred script loading, and starts the RAF loop |
-| `disconnectedCallback()` | Tears down all timers, observers, global event listeners, and external nav button click handlers |
+| `connectedCallback()` | Sets up event listeners, ResizeObserver, slot change handling, autoplay pause-on-hover/focus, and RAF loop; sets `role="region"`, `aria-roledescription="carousel"`, and a fallback `aria-label` on the host; wires up external nav buttons |
+| `disconnectedCallback()` | Tears down all timers, observers, and global event listeners; removes click handlers from `[related-carousel]` buttons and sets their `tabindex="-1"` |
 
 ### Core Logic
 
 | Method | Purpose |
 |---|---|
 | `_measure()` | Calculates slide width, stride, gap, peek, and mask gradient from attributes, CSS variables, and viewport size; updates CSS custom properties |
-| `_syncActiveStates()` | Updates `data-active`, `data-visible`, `aria-hidden`, and `tabindex` on every slide (including clones) based on current scroll position |
-| `_raf()` | `requestAnimationFrame` loop — interpolates `currentTranslate` toward `targetTranslate` using elasticity, handles continuous-scroll (speed) mode, and teleports position at loop boundaries |
+| `_syncActiveStates()` | Updates `data-active` and `data-visible` on every slide (including clones) based on current scroll position; does not manage `aria-hidden` or `tabindex` (those are set once by `_applyA11yDefaults`) |
+| `_raf()` | `requestAnimationFrame` loop — interpolates `currentTranslate` toward `targetTranslate` using elasticity, handles continuous-scroll (speed) mode, and teleports position at loop boundaries; calls `_suppressTransition()` on each teleport to prevent opacity-flicker |
 | `_parsePeekValue(value, parentWidth)` | Converts a peek attribute value (px or %) to a pixel number |
 
 ### Initialization
@@ -184,16 +300,23 @@ Complete reference for every method in the `FacelessCarousel` class.
 | Method | Purpose |
 |---|---|
 | `_deferredInit()` | Delays `_init()` until `document.readyState === 'complete'` so frameworks (React, Gatsby) finish hydrating dynamic content before slides are cloned |
-| `_init()` | Main initialization: indexes slides with `data-slide-idx`, creates prepend/append clone buffers for loop mode, renders dots, triggers first measurement, starts autoplay |
+| `_init()` | Main initialization: indexes slides with `data-slide-idx`, assigns per-slide ARIA roles and labels (`role="group"`, `aria-roledescription="slide"`, `aria-label="Slide N of M"`), creates prepend/append clone buffers for loop mode, renders dots, triggers first measurement, starts autoplay, and calls `_applyA11yDefaults()` |
 | `_fixClonedSlide(clone)` | Patches images inside cloned slides — forces `opacity: 1`, `loading="eager"`, and resolves `data-src`/`data-lazy` attributes since clones lose framework JS (hydration, IntersectionObserver, onLoad handlers) |
 | `_watchOriginals()` | Attaches a MutationObserver to original slides; when frameworks add child elements after initial render, triggers `_refreshClones()` to re-clone with complete DOM |
-| `_refreshClones()` | Replaces every existing clone with a fresh `cloneNode(true)` copy of its original slide, preserving visibility and active state |
+| `_refreshClones()` | Replaces every existing clone with a fresh `cloneNode(true)` copy of its original slide, preserving visibility and active state; calls `_applyA11yDefaults()` afterwards to restore clone `aria-hidden` and `tabindex="-1"` |
+
+### Accessibility
+
+| Method | Purpose |
+|---|---|
+| `_applyA11yDefaults()` | Sets `aria-hidden`/`tabindex` based on clone status, not scroll position. Group 1 — original slides: `aria-hidden` removed, `tabindex` removed from children (natural tab flow). Group 2 — clone slides: `aria-hidden="true"`, children `tabindex="-1"`. Also restores `tabindex` on associated `[related-carousel]` elements. Called on init and after every clone refresh. |
+| `_suppressTransition()` | Adds `no-transition` to the host class list and schedules its removal on the next `requestAnimationFrame`. While active, the Shadow DOM rule `:host(.no-transition) ::slotted(*) { transition: none }` disables all CSS transitions for one frame, preventing opacity-flicker during loop teleports. |
 
 ### External Navigation
 
 | Method | Purpose |
 |---|---|
-| `_setupExternalNavButtons()` | Queries all `[related-carousel="<id>"]` elements in the document, binds a click handler to each that calls `prev()` or `next()` based on the button's `prev`/`next` class, and stores the `{ el, handler }` pairs in `_externalNavListeners` for cleanup |
+| `_setupExternalNavButtons()` | Queries all `[related-carousel="<id>"]` elements in the document, restores their `tabindex`, binds a click handler to each that calls `prev()` or `next()` based on the button's `prev`/`next` class, and stores `{ el, handler }` pairs in `_externalNavListeners` for cleanup |
 
 ### Event Handlers
 
@@ -203,7 +326,7 @@ Complete reference for every method in the `FacelessCarousel` class.
 | `_onDragMove(e)` | Updates `currentTranslate` based on pointer delta during drag |
 | `_onDragEnd()` | Snaps to the nearest slide index, removes global move listeners, restarts autoplay if enabled |
 | `_onKeyDown(e)` | Handles ArrowLeft/ArrowRight keyboard navigation |
-| `_onFocusIn(e)` | When an interactive element inside a slide receives focus, scrolls that slide into view |
+| `_onFocusIn(e)` | When any focusable element inside an original slide receives focus, calls `goTo(index)` unconditionally to ensure the slide is fully scrolled into view — including slides that are only partially visible due to peek |
 | `_onWheel(e)` | Accumulates mousewheel/trackpad delta and triggers `next()`/`prev()` once the threshold is reached, with a 400 ms lock to prevent rapid-fire navigation |
 | `_onResize()` | Delegates to `_measure()` when the element is resized |
 

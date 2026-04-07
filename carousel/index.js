@@ -44,8 +44,12 @@ if (template) template.innerHTML = `
   }
 
   ::slotted(:not([data-visible])) {
-    visibility: hidden !important;
+    opacity: 0 !important;
     pointer-events: none;
+  }
+
+  :host(.no-transition) ::slotted(*) {
+    transition: none !important;
   }
 
   .dots-container {
@@ -70,6 +74,17 @@ if (template) template.innerHTML = `
     background: var(--dot-active-color);
     width: var(--dot-active-width);
   }
+
+  .sr-announcer {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
 </style>
 <div class="viewport" part="viewport">
   <div class="track" part="track" role="listbox">
@@ -77,6 +92,7 @@ if (template) template.innerHTML = `
   </div>
 </div>
 <div class="dots-container" part="dots-container" role="tablist"></div>
+<div class="sr-announcer" aria-live="polite" aria-atomic="true"></div>
 `;
 
 const BaseElement = isBrowser ? HTMLElement : class {};
@@ -133,8 +149,12 @@ class FacelessCarousel extends BaseElement {
     this.track = this.shadowRoot.querySelector('.track');
     this.slotEl = this.shadowRoot.querySelector('slot');
     this.dotsContainer = this.shadowRoot.querySelector('.dots-container');
+    this.srAnnouncer = this.shadowRoot.querySelector('.sr-announcer');
 
     this.setAttribute('tabindex', '0');
+    this.setAttribute('role', 'region');
+    this.setAttribute('aria-roledescription', 'carousel');
+    if (!this.hasAttribute('aria-label')) this.setAttribute('aria-label', 'Carousel');
 
     this.viewport.addEventListener('mousedown', this._onDragStart);
     this.viewport.addEventListener('touchstart', this._onDragStart, { passive: false });
@@ -177,7 +197,10 @@ class FacelessCarousel extends BaseElement {
     window.removeEventListener('touchend', this._onDragEnd);
     window.removeEventListener('mousemove', this._onDragMove);
     window.removeEventListener('touchmove', this._onDragMove);
-    this._externalNavListeners.forEach(({ el, handler }) => el.removeEventListener('click', handler));
+    this._externalNavListeners.forEach(({ el, handler }) => {
+      el.removeEventListener('click', handler);
+      el.setAttribute('tabindex', '-1');
+    });
     this._externalNavListeners = [];
   }
 
@@ -279,25 +302,41 @@ class FacelessCarousel extends BaseElement {
 
       const isVisible = i >= Math.floor(viewportStart) - 1 && i < Math.ceil(viewportEnd) + 1;
       const wasVisible = el.hasAttribute('data-visible');
-
-      if (isVisible === wasVisible) return;
-
-      if (isVisible) {
-        el.setAttribute('data-visible', 'true');
-        el.removeAttribute('aria-hidden');
-        const isClone = el.classList.contains('clone');
-        el.querySelectorAll('a, button, input').forEach(c => c.setAttribute('tabindex', isClone ? '-1' : '0'));
-      } else {
-        el.removeAttribute('data-visible');
-        el.setAttribute('aria-hidden', 'true');
-        el.querySelectorAll('a, button, input').forEach(c => c.setAttribute('tabindex', '-1'));
+      if (isVisible !== wasVisible) {
+        if (isVisible) el.setAttribute('data-visible', 'true');
+        else el.removeAttribute('data-visible');
       }
     });
+  }
+
+  _suppressTransition() {
+    this.classList.add('no-transition');
+    requestAnimationFrame(() => this.classList.remove('no-transition'));
+  }
+
+  _applyA11yDefaults() {
+    // Group 1: elements inside the carousel's light DOM — managed by clone status
+    Array.from(this.children).forEach(el => {
+      if (el.classList.contains('clone')) {
+        el.setAttribute('aria-hidden', 'true');
+        el.querySelectorAll('a, button, input').forEach(c => c.setAttribute('tabindex', '-1'));
+      } else {
+        el.removeAttribute('aria-hidden');
+        el.querySelectorAll('a, button, input').forEach(c => c.removeAttribute('tabindex'));
+      }
+    });
+
+    // Group 2: external elements declared via [related-carousel] — kept in tab order while carousel is connected
+    if (this.id) {
+      document.querySelectorAll('[related-carousel="' + this.id + '"]')
+        .forEach(el => el.removeAttribute('tabindex'));
+    }
   }
 
   _setupExternalNavButtons() {
     if (!this.id) return;
     document.querySelectorAll('[related-carousel="' + this.id + '"]').forEach(el => {
+      el.removeAttribute('tabindex');
       const handler = () => {
         if (el.classList.contains('prev')) this.prev();
         else if (el.classList.contains('next')) this.next();
@@ -335,6 +374,13 @@ class FacelessCarousel extends BaseElement {
     rawSlides.forEach((slide, idx) => slide.setAttribute('data-slide-idx', idx));
     this.state.realCount = rawSlides.length;
 
+    const total = rawSlides.length;
+    rawSlides.forEach((slide, idx) => {
+      slide.setAttribute('role', 'group');
+      slide.setAttribute('aria-roledescription', 'slide');
+      slide.setAttribute('aria-label', `Slide ${idx + 1} of ${total}`);
+    });
+
     const loop = this.hasAttribute('loop');
     const itemsPerView = parseFloat(this.getAttribute('items-per-view')) || parseFloat(getComputedStyle(this).getPropertyValue('--items-per-view')) || 1;
     if (loop) {
@@ -365,6 +411,7 @@ class FacelessCarousel extends BaseElement {
       if (this.hasAttribute('autoplay')) this._startAutoplay();
     }, 0);
 
+    this._applyA11yDefaults();
     this._watchOriginals();
   }
 
@@ -405,6 +452,8 @@ class FacelessCarousel extends BaseElement {
 
       clone.replaceWith(newClone);
     });
+
+    this._applyA11yDefaults();
   }
 
   _raf() {
@@ -434,9 +483,11 @@ class FacelessCarousel extends BaseElement {
         if (this.state.currentTranslate > startOfReal) {
           this.state.currentTranslate -= totalWidth;
           this.state.targetTranslate -= totalWidth;
+          this._suppressTransition();
         } else if (this.state.currentTranslate <= endOfReal) {
           this.state.currentTranslate += totalWidth;
           this.state.targetTranslate += totalWidth;
+          this._suppressTransition();
         }
       }
     }
@@ -458,6 +509,8 @@ class FacelessCarousel extends BaseElement {
     const target = -((cloneCount + index) * stride);
     if (animate) this.state.targetTranslate = target;
     else { this.state.currentTranslate = target; this.state.targetTranslate = target; }
+    const realIdx = ((index % realCount) + realCount) % realCount;
+    if (this.srAnnouncer) this.srAnnouncer.textContent = `Slide ${realIdx + 1} of ${realCount}`;
     this._syncActiveStates();
   }
 
@@ -498,10 +551,9 @@ class FacelessCarousel extends BaseElement {
   _onFocusIn(e) {
     const focusedElement = e.composedPath()[0];
     const slide = focusedElement.closest('[data-slide-idx]');
-    if (slide && !slide.classList.contains('clone')) {
-      const index = parseInt(slide.getAttribute('data-slide-idx'));
-      if (index !== this.state.currentIndex) this.goTo(index);
-    }
+    if (!slide || slide.classList.contains('clone')) return;
+    const index = parseInt(slide.getAttribute('data-slide-idx'));
+    this.goTo(index);
   }
 
   _renderDots() {

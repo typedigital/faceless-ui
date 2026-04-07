@@ -153,7 +153,63 @@ const sections = [
     </div>`,
   },
   {
-    title: '5. Responsive Hero (Loop + Peek)',
+    title: '5. A11y Navigation Testing',
+    description:
+      'Tests Tab navigation across all slides, screen reader landmark skip, and live announcements. Every slide has a link and a button — including off-screen ones.',
+    html: `
+    <ul style="font-size: 0.85rem; color: #6b7280; margin: 8px 0 20px; padding-left: 1.2em; line-height: 1.8;">
+      <li><strong>Tab</strong> — all slides are reachable, even those outside the visible viewport</li>
+      <li>Focusing an off-screen slide scrolls it fully into view automatically</li>
+      <li>Screen reader (NVDA: R, VoiceOver: VO+U) — landmark navigation skips the carousel entirely</li>
+      <li>Screen reader: each slide is announced as "Slide N of 6, group"</li>
+      <li>Navigation via arrow keys / dots / buttons — screen reader announces "Slide X of 6"</li>
+    </ul>
+
+    <div class="carousel-wrapper">
+      <button class="nav-btn prev" related-carousel="a11y-demo" aria-label="Previous slide">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
+
+      <faceless-carousel id="a11y-demo" aria-label="Product highlights" loop items-per-view="2" gap="20" show-dots mousewheel>
+        <div class="slide" style="background: #f0fdf4; flex-direction: column; gap: 12px;">
+          <strong>Product 1</strong>
+          <a href="#">View details →</a>
+          <button>Add to cart</button>
+        </div>
+        <div class="slide" style="background: #fef9c3; flex-direction: column; gap: 12px;">
+          <strong>Product 2</strong>
+          <a href="#">View details →</a>
+          <button>Add to cart</button>
+        </div>
+        <div class="slide" style="background: #fce7f3; flex-direction: column; gap: 12px;">
+          <strong>Product 3</strong>
+          <a href="#">View details →</a>
+          <button>Add to cart</button>
+        </div>
+        <div class="slide" style="background: #e0f2fe; flex-direction: column; gap: 12px;">
+          <strong>Product 4</strong>
+          <a href="#">View details →</a>
+          <button>Add to cart</button>
+        </div>
+        <div class="slide" style="background: #fde8d8; flex-direction: column; gap: 12px;">
+          <strong>Product 5</strong>
+          <a href="#">View details →</a>
+          <button>Add to cart</button>
+        </div>
+        <div class="slide" style="background: #ede9fe; flex-direction: column; gap: 12px;">
+          <strong>Product 6</strong>
+          <a href="#">View details →</a>
+          <button>Add to cart</button>
+        </div>
+      </faceless-carousel>
+
+      <button class="nav-btn next" related-carousel="a11y-demo" aria-label="Next slide">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </button>
+    </div>`,
+  },
+  {
+    title: '6. Responsive Hero (Loop + Peek)',
     description: 'Mobile: 1 item | Desktop: 3 items | 15% peek at edges',
     html: `
     <faceless-carousel id="hero-carousel" loop show-dots peek="15%" peek-type="fade" mousewheel>

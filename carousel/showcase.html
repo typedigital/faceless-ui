@@ -104,6 +104,67 @@
         </button>
     </div>
 
+    <h2>5. A11y Navigation Testing</h2>
+    <p>Testet Tab-Navigation, Screen-Reader-Landmark-Skip und Live-Announcements.</p>
+    <ul style="font-size: 0.85rem; color: #6b7280; margin: 8px 0 20px; padding-left: 1.2em; line-height: 1.8;">
+        <li><kbd>Tab</kbd> — alle Slides sind erreichbar, auch wenn sie außerhalb des sichtbaren Bereichs liegen</li>
+        <li>Fokus auf einen Off-Screen-Slide → Carousel scrollt automatisch in den View</li>
+        <li>Screen Reader (NVDA: <kbd>R</kbd>, VoiceOver: <kbd>VO+U</kbd>) → Landmark-Navigation überspringt das Carousel komplett</li>
+        <li>Screen Reader: jeder Slide wird als „Slide N of 6, Gruppe" angesagt</li>
+        <li>Navigation via Pfeiltasten / Dots / Buttons → Screen Reader sagt „Slide X of 6" an</li>
+    </ul>
+
+    <div class="carousel-wrapper">
+        <button class="nav-btn prev" related-carousel="a11y-demo" aria-label="Vorheriges Slide">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+
+        <faceless-carousel
+            id="a11y-demo"
+            aria-label="Produkthighlights"
+            loop
+            items-per-view="2"
+            gap="20"
+            show-dots
+            mousewheel
+        >
+            <div class="slide" style="background: #f0fdf4; flex-direction: column; gap: 12px;">
+                <strong>Produkt 1</strong>
+                <a href="#">Details ansehen →</a>
+                <button>In den Warenkorb</button>
+            </div>
+            <div class="slide" style="background: #fef9c3; flex-direction: column; gap: 12px;">
+                <strong>Produkt 2</strong>
+                <a href="#">Details ansehen →</a>
+                <button>In den Warenkorb</button>
+            </div>
+            <div class="slide" style="background: #fce7f3; flex-direction: column; gap: 12px;">
+                <strong>Produkt 3</strong>
+                <a href="#">Details ansehen →</a>
+                <button>In den Warenkorb</button>
+            </div>
+            <div class="slide" style="background: #e0f2fe; flex-direction: column; gap: 12px;">
+                <strong>Produkt 4</strong>
+                <a href="#">Details ansehen →</a>
+                <button>In den Warenkorb</button>
+            </div>
+            <div class="slide" style="background: #fde8d8; flex-direction: column; gap: 12px;">
+                <strong>Produkt 5</strong>
+                <a href="#">Details ansehen →</a>
+                <button>In den Warenkorb</button>
+            </div>
+            <div class="slide" style="background: #ede9fe; flex-direction: column; gap: 12px;">
+                <strong>Produkt 6</strong>
+                <a href="#">Details ansehen →</a>
+                <button>In den Warenkorb</button>
+            </div>
+        </faceless-carousel>
+
+        <button class="nav-btn next" related-carousel="a11y-demo" aria-label="Nächstes Slide">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </button>
+    </div>
+
     <footer style="margin-top: 100px; text-align: center; color: #9ca3af; font-size: 0.8rem;">
         Faceless-carousel Component v1.0 - Keine Abhängigkeiten.
     </footer>

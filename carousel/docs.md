@@ -21,6 +21,8 @@ The component is configured primarily through HTML attributes. For boolean attri
 | `interval`       | Autoplay delay in milliseconds                                       | `3000`  |
 | `mousewheel`     | Enables horizontal scrolling via trackpad or mouse wheel            | `false` |
 | `speed`          | Enables continuous scroll (Ticker Mode) when set to a number        | `none`  |
+| `hide-play-pause`| Visually hides the Play/Pause button (sr-only, still keyboard-focusable) | `false` |
+| `no-snap`        | Prevents snapping to the nearest slide when paused                   | `false` |
 
 ---
 
@@ -55,6 +57,13 @@ The `loop` attribute creates a seamless transition from the last slide back to t
 ## 5. Intelligent Autoplay
 Automatically cycles through slides with built-in **Pause-on-Hover** and **Pause-on-Focus** behavior. Sliding resumes once user interaction ends.
 
+### Play/Pause Button
+When `autoplay` is set, the component renders an internal Play/Pause button in the Shadow DOM. It toggles between `⏸` (pause) and `▶` (play) and updates its `aria-label` accordingly.
+
+The `hide-play-pause` attribute visually hides the button using the sr-only pattern (clipped to 1×1 px). The button remains in the tab order and is fully operable via keyboard — it is only invisible to sighted users. This is useful for carousels where the visual design does not include a pause control but accessibility compliance requires one.
+
+External Play/Pause buttons are also supported via the `related-carousel` attribute with the `play-pause` class (see Section 7).
+
 ---
 
 ## 6. Continuous Scroll (Ticker Mode)
@@ -63,6 +72,17 @@ By setting the `speed` attribute, the carousel switches to a smooth, constant mo
 **Usage:** Ideal for logo walls or brand tickers.
 
 **Interactivity:** Even in Ticker Mode, dragging will pause the motion for manual control.
+
+### No-Snap Behavior
+By default, when a carousel is paused (via hover, focus, or the Play/Pause button), it snaps to the nearest slide boundary. For continuous-scroll carousels this snap can be jarring. Adding the `no-snap` attribute freezes the track at its exact current position instead.
+
+```html
+<faceless-carousel autoplay speed="2" loop no-snap>
+  ...
+</faceless-carousel>
+```
+
+Internally, `no-snap` prevents the spring physics in `_raf()` from pulling the track to a snap point while paused, and guards the `goTo()` call in `_measure()` so that a `ResizeObserver` callback during pause does not re-snap the position.
 
 ---
 
@@ -79,7 +99,7 @@ Instead of calling the JS API from inline `onclick` handlers, buttons can declar
 
 **Button requirements:**
 - `related-carousel="<id>"` — must match the carousel's `id`
-- Class `prev` or `next` — declares the navigation direction
+- Class `prev`, `next`, or `play-pause` — declares the button's action
 
 ```html
 <button class="nav-btn prev" related-carousel="my-carousel" aria-label="Previous">‹</button>
@@ -104,7 +124,7 @@ Instead of calling the JS API from inline `onclick` handlers, buttons can declar
 **Constraints:**
 - Buttons must be present in the DOM when the carousel connects. Buttons added later are not picked up (no MutationObserver).
 - If the carousel has no `id`, the feature is silently disabled.
-- A button with neither `prev` nor `next` class has no effect.
+- A button with neither `prev`, `next`, nor `play-pause` class has no effect.
 
 ---
 
@@ -161,15 +181,25 @@ Clone slides (created internally for loop mode) always carry `aria-hidden="true"
 
 ---
 
-### 8.3 Live Region — Position Announcements
+### 8.3 Live Region — Dynamic Announcements
 
-A visually-hidden `aria-live="polite"` region in the Shadow DOM is updated on every `goTo()` call:
+The slide container (`.track`) and a visually-hidden announcer region carry `aria-live` and `aria-atomic` attributes that are managed dynamically by `_updateAriaLive()`:
 
-```
-"Slide 3 of 6"
-```
+| Element | `aria-live` | `aria-atomic` |
+|---|---|---|
+| `.track` (slide container) | `"off"` / `"polite"` | `"false"` |
+| `.sr-announcer` (position text) | `"off"` / `"polite"` | `"true"` |
 
-This fires for **all** navigation methods: arrow keys, dot clicks, `related-carousel` buttons, drag-snap, and autoplay. Screen reader users always hear where they are after any transition, without the live region interrupting ongoing speech.
+The value switches based on carousel state:
+
+| State | `aria-live` | Reason |
+|---|---|---|
+| Auto-rotating (not paused) | `"off"` | Suppresses a flood of announcements during automatic slide changes |
+| Paused (hover, focus, or Play/Pause button) | `"polite"` | Announces slide changes triggered by user interaction |
+| No `autoplay` attribute | `"polite"` | All navigation is user-initiated |
+| Multi-slide (`items-per-view > 1`) | `"off"` | Multiple simultaneous content changes would produce confusing announcements |
+
+The `.sr-announcer` is updated on every `goTo()` call with a position string (e.g. `"Slide 3 of 6"`). This fires for all navigation methods: arrow keys, dot clicks, `related-carousel` buttons, drag-snap, and autoplay — but announcements only reach the screen reader when `aria-live` is `"polite"`.
 
 ---
 
@@ -265,9 +295,11 @@ The script:
 ## 10. Styling & Customization
 Use CSS Variables and Shadow Parts to style internal elements:
 
-- `::part(viewport)` – The clipping container  
-- `::part(track)` – The sliding track  
-- `::part(dot)` – Individual pagination dots  
+- `::part(viewport)` – The clipping container
+- `::part(track)` – The sliding track
+- `::part(play-pause)` – The internal Play/Pause button
+- `::part(dots-container)` – The wrapper around pagination dots
+- `::part(dot)` – Individual pagination dots
 - `::part(dot-active)` – The active pill-shaped dot
 
 ---
@@ -316,7 +348,9 @@ Complete reference for every method in the `FacelessCarousel` class.
 
 | Method | Purpose |
 |---|---|
-| `_setupExternalNavButtons()` | Queries all `[related-carousel="<id>"]` elements in the document, restores their `tabindex`, binds a click handler to each that calls `prev()` or `next()` based on the button's `prev`/`next` class, and stores `{ el, handler }` pairs in `_externalNavListeners` for cleanup |
+| `_setupExternalNavButtons()` | Queries all `[related-carousel="<id>"]` elements in the document, restores their `tabindex`, binds click/focusin/focusout handlers, and stores `{ el, handler }` pairs in `_externalNavListeners` for cleanup. Supports `prev`, `next`, and `play-pause` classes. |
+| `_setupFocusManagement()` | Builds a focus chain (Play/Pause → external Prev → external Next → dots) and intercepts Tab/Shift+Tab to enforce a logical keyboard navigation order within the carousel group |
+| `_teardownFocusManagement()` | Removes all keydown listeners installed by `_setupFocusManagement()` |
 
 ### Event Handlers
 
@@ -328,6 +362,8 @@ Complete reference for every method in the `FacelessCarousel` class.
 | `_onKeyDown(e)` | Handles ArrowLeft/ArrowRight keyboard navigation |
 | `_onFocusIn(e)` | When any focusable element inside an original slide receives focus, calls `goTo(index)` unconditionally to ensure the slide is fully scrolled into view — including slides that are only partially visible due to peek |
 | `_onWheel(e)` | Accumulates mousewheel/trackpad delta and triggers `next()`/`prev()` once the threshold is reached, with a 400 ms lock to prevent rapid-fire navigation |
+| `_onGroupFocusIn()` | Cancels any pending focusout debounce and pauses the carousel via `_setPaused(true)`. Listens on the host element and all external nav buttons. |
+| `_onGroupFocusOut()` | Debounced via `requestAnimationFrame`: checks whether focus has truly left the carousel group (host + external buttons) before calling `_setPaused(false)` |
 | `_onResize()` | Delegates to `_measure()` when the element is resized |
 
 ### Public API
@@ -344,6 +380,9 @@ Complete reference for every method in the `FacelessCarousel` class.
 |---|---|
 | `_startAutoplay()` | Starts an interval timer that calls `next()` on each tick; stops at the last slide in non-loop mode |
 | `_stopAutoplay()` | Clears the autoplay interval timer |
-| `_setPaused(paused)` | Pauses or resumes autoplay in response to hover and focus events |
+| `_setPaused(paused)` | Pauses or resumes autoplay in response to hover and focus events; calls `_updateAriaLive()` to switch the live region |
+| `_toggleAutoplay()` | Toggles `isUserPaused` state (explicit Play/Pause action), stops or starts autoplay, and updates the button icon and `aria-live` |
+| `_updatePlayPauseButton()` | Synchronizes the Play/Pause button text (`⏸`/`▶`) and `aria-label` with the `isUserPaused` state |
+| `_updateAriaLive()` | Sets `aria-live` on `.track` and `.sr-announcer` to `"off"` (auto-rotating or multi-slide) or `"polite"` (paused / manual) |
 | `_toggleDots()` | Shows or hides the dots container based on the `show-dots` attribute |
 | `_renderDots()` | Creates pagination dot buttons (one per real slide) with click-to-navigate behavior |

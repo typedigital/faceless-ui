@@ -4,9 +4,9 @@ const template = isBrowser ? document.createElement('template') : null;
 if (template) template.innerHTML = `
 <style>
   :host {
-    display: block;
+    display: flex;
+    flex-direction: column;
     position: relative;
-    overflow: hidden;
     --items-per-view: 1;
     --gap: 0px;
     --internal-slide-width: 0px;
@@ -19,6 +19,7 @@ if (template) template.innerHTML = `
   }
 
   .viewport {
+    order: 1;
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -36,41 +37,85 @@ if (template) template.innerHTML = `
     will-change: transform;
   }
 
-  ::slotted(*) {
+  ::slotted(:not([slot])) {
     flex-shrink: 0;
     box-sizing: border-box;
     width: var(--internal-slide-width) !important;
     transition: transform 0.5s ease, opacity 0.5s ease !important;
+    interactivity: inert;
   }
 
-  ::slotted(:not([data-visible])) {
+  ::slotted([data-visible]) {
+    interactivity: auto;
+  }
+
+  ::slotted(:not([data-visible]):not([slot])) {
     opacity: 0 !important;
     pointer-events: none;
   }
 
-  :host(.no-transition) ::slotted(*) {
+  :host(.no-transition) ::slotted(:not([slot])) {
     transition: none !important;
   }
 
+  .play-pause-btn {
+    order: 2;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 1rem;
+    align-self: center;
+  }
+  :host([autoplay]) .play-pause-btn {
+    display: inline-flex;
+  }
+  :host([hide-play-pause]) .play-pause-btn {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .dots-container {
+    order: 3;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 6px;
+    gap: 0;
     padding: 20px 0;
   }
   .dots-container[hidden] { display: none; }
+  .dots-container:empty { display: none; }
   .dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  .dot::after {
+    content: '';
+    display: block;
     width: var(--dot-size);
     height: var(--dot-size);
     border-radius: 99px;
-    border: none;
     background: var(--dot-color);
-    cursor: pointer;
-    padding: 0;
     transition: var(--dot-transition);
   }
-  .dot.active {
+  .dot.active::after {
     background: var(--dot-active-color);
     width: var(--dot-active-width);
   }
@@ -86,13 +131,14 @@ if (template) template.innerHTML = `
     border: 0;
   }
 </style>
+<button class="play-pause-btn" part="play-pause" aria-label="Pause auto-rotation">\u23F8</button>
+<div class="dots-container" part="dots-container" role="tablist"></div>
 <div class="viewport" part="viewport">
-  <div class="track" part="track" role="listbox">
+  <div class="track" part="track" role="listbox" aria-live="off" aria-atomic="false">
     <slot></slot>
   </div>
 </div>
-<div class="dots-container" part="dots-container" role="tablist"></div>
-<div class="sr-announcer" aria-live="polite" aria-atomic="true"></div>
+<div class="sr-announcer" aria-live="off" aria-atomic="true"></div>
 `;
 
 const BaseElement = isBrowser ? HTMLElement : class {};
@@ -116,6 +162,7 @@ class FacelessCarousel extends BaseElement {
       isInitializing: false,
       autoplayTimer: null,
       isPaused: false,
+      isUserPaused: false,
       wheelAccumulator: 0,
       isWheelLocked: false
     };
@@ -123,6 +170,9 @@ class FacelessCarousel extends BaseElement {
     this.config = { friction: 0.92, elasticity: 0.12, wheelThreshold: 50 };
 
     this._externalNavListeners = [];
+    this._externalPrev = null;
+    this._externalNext = null;
+    this._focusChainCleanup = [];
 
     this._raf = this._raf.bind(this);
     this._onResize = this._onResize.bind(this);
@@ -132,10 +182,13 @@ class FacelessCarousel extends BaseElement {
     this._onKeyDown = this._onKeyDown.bind(this);
     this._onFocusIn = this._onFocusIn.bind(this);
     this._onWheel = this._onWheel.bind(this);
+    this._toggleAutoplay = this._toggleAutoplay.bind(this);
+    this._onGroupFocusIn = this._onGroupFocusIn.bind(this);
+    this._onGroupFocusOut = this._onGroupFocusOut.bind(this);
   }
 
   static get observedAttributes() {
-    return ['items-per-view', 'gap', 'loop', 'peek', 'peek-type', 'show-dots', 'autoplay', 'interval', 'mousewheel'];
+    return ['items-per-view', 'gap', 'loop', 'peek', 'peek-type', 'show-dots', 'autoplay', 'interval', 'mousewheel', 'hide-play-pause', 'no-snap'];
   }
 
   attributeChangedCallback() {
@@ -150,11 +203,14 @@ class FacelessCarousel extends BaseElement {
     this.slotEl = this.shadowRoot.querySelector('slot');
     this.dotsContainer = this.shadowRoot.querySelector('.dots-container');
     this.srAnnouncer = this.shadowRoot.querySelector('.sr-announcer');
+    this.playPauseBtn = this.shadowRoot.querySelector('.play-pause-btn');
 
     this.setAttribute('tabindex', '0');
     this.setAttribute('role', 'region');
     this.setAttribute('aria-roledescription', 'carousel');
-    if (!this.hasAttribute('aria-label')) this.setAttribute('aria-label', 'Carousel');
+    if (!this.hasAttribute('aria-label')) {
+      console.warn(`<faceless-carousel${this.id ? ` id="${this.id}"` : ''}> is missing an aria-label. Provide a descriptive label for the carousel content, e.g. aria-label="Partner logos".`);
+    }
 
     this.viewport.addEventListener('mousedown', this._onDragStart);
     this.viewport.addEventListener('touchstart', this._onDragStart, { passive: false });
@@ -164,6 +220,7 @@ class FacelessCarousel extends BaseElement {
     this.addEventListener('keydown', this._onKeyDown);
     this.addEventListener('focusin', this._onFocusIn);
     this.viewport.addEventListener('wheel', this._onWheel, { passive: false });
+    this.playPauseBtn.addEventListener('click', this._toggleAutoplay);
 
     this.resizeObserver = new ResizeObserver(this._onResize);
     this.resizeObserver.observe(this);
@@ -176,12 +233,13 @@ class FacelessCarousel extends BaseElement {
       this._deferredInit();
     }
 
-    this._setupExternalNavButtons();
+    // Defer so sibling buttons (NextButton after carousel in DOM) are rendered
+    setTimeout(() => this._setupExternalNavButtons(), 0);
 
     this.addEventListener('mouseenter', () => this._setPaused(true));
     this.addEventListener('mouseleave', () => this._setPaused(false));
-    this.addEventListener('focusin', () => this._setPaused(true));
-    this.addEventListener('focusout', () => this._setPaused(false));
+    this.addEventListener('focusin', this._onGroupFocusIn);
+    this.addEventListener('focusout', this._onGroupFocusOut);
 
     this.rafId = requestAnimationFrame(this._raf);
   }
@@ -197,11 +255,17 @@ class FacelessCarousel extends BaseElement {
     window.removeEventListener('touchend', this._onDragEnd);
     window.removeEventListener('mousemove', this._onDragMove);
     window.removeEventListener('touchmove', this._onDragMove);
+    cancelAnimationFrame(this._focusOutRaf);
+    this._teardownFocusManagement();
     this._externalNavListeners.forEach(({ el, handler }) => {
       el.removeEventListener('click', handler);
-      el.setAttribute('tabindex', '-1');
+      el.removeEventListener('focusin', this._onGroupFocusIn);
+      el.removeEventListener('focusout', this._onGroupFocusOut);
+      el.removeAttribute('tabindex');
     });
     this._externalNavListeners = [];
+    this._externalPrev = null;
+    this._externalNext = null;
   }
 
   _onWheel(e) {
@@ -248,7 +312,7 @@ class FacelessCarousel extends BaseElement {
     const items = parseFloat(this.getAttribute('items-per-view')) || parseFloat(style.getPropertyValue('--items-per-view')) || 1;
     const gap = parseFloat(this.getAttribute('gap')) || parseFloat(style.getPropertyValue('--gap')) || 0;
 
-    const firstChild = this.children[0];
+    const firstChild = Array.from(this.children).find(el => !el.slot);
     let childMargin = 0;
     if (firstChild) {
       const cs = getComputedStyle(firstChild);
@@ -275,7 +339,13 @@ class FacelessCarousel extends BaseElement {
       this.style.setProperty('--mask-gradient', 'none');
     }
 
-    this.goTo(this.state.currentIndex, false);
+    const noSnapWhilePaused = this.hasAttribute('no-snap')
+      && (this.state.isPaused || this.state.isUserPaused);
+    if (!noSnapWhilePaused) {
+      this.goTo(this.state.currentIndex, false);
+    }
+
+    this._updateAriaLive();
   }
 
   _syncActiveStates() {
@@ -285,26 +355,34 @@ class FacelessCarousel extends BaseElement {
     const realIndex = ((currentIndex % realCount) + realCount) % realCount;
 
     const dots = this.dotsContainer.querySelectorAll('.dot');
-    dots.forEach((dot, idx) => dot.classList.toggle('active', idx === realIndex));
+    dots.forEach((dot, idx) => {
+      const isActive = idx === realIndex;
+      dot.classList.toggle('active', isActive);
+      dot.setAttribute('aria-selected', String(isActive));
+    });
 
-    const startOfReal = -(cloneCount * stride);
-    const floatIndex = -(this.state.currentTranslate - startOfReal) / stride;
+    const visibleStart = cloneCount + currentIndex;
+    const visibleEnd = visibleStart + Math.ceil(itemsVisible || 1);
 
-    const viewportStart = cloneCount + floatIndex;
-    const viewportEnd = viewportStart + (itemsVisible || 1);
-
-    Array.from(this.children).forEach((el, i) => {
+    Array.from(this.children).filter(el => !el.slot).forEach((el, i) => {
       const elSlideIdx = parseInt(el.getAttribute('data-slide-idx'));
       const wasActive = el.hasAttribute('data-active');
       const isActive = elSlideIdx === realIndex;
       if (isActive && !wasActive) el.setAttribute('data-active', 'true');
       else if (!isActive && wasActive) el.removeAttribute('data-active');
 
-      const isVisible = i >= Math.floor(viewportStart) - 1 && i < Math.ceil(viewportEnd) + 1;
+      const isVisible = i >= visibleStart && i < visibleEnd;
       const wasVisible = el.hasAttribute('data-visible');
       if (isVisible !== wasVisible) {
-        if (isVisible) el.setAttribute('data-visible', 'true');
-        else el.removeAttribute('data-visible');
+        if (isVisible) {
+          el.setAttribute('data-visible', 'true');
+          el.removeAttribute('aria-hidden');
+          el.querySelectorAll('a, button, input, select, textarea').forEach(c => c.removeAttribute('tabindex'));
+        } else {
+          el.removeAttribute('data-visible');
+          el.setAttribute('aria-hidden', 'true');
+          el.querySelectorAll('a, button, input, select, textarea').forEach(c => c.setAttribute('tabindex', '-1'));
+        }
       }
     });
   }
@@ -315,35 +393,93 @@ class FacelessCarousel extends BaseElement {
   }
 
   _applyA11yDefaults() {
-    // Group 1: elements inside the carousel's light DOM — managed by clone status
-    Array.from(this.children).forEach(el => {
-      if (el.classList.contains('clone')) {
-        el.setAttribute('aria-hidden', 'true');
-        el.querySelectorAll('a, button, input').forEach(c => c.setAttribute('tabindex', '-1'));
-      } else {
-        el.removeAttribute('aria-hidden');
-        el.querySelectorAll('a, button, input').forEach(c => c.removeAttribute('tabindex'));
-      }
+    // JS fallback for browsers without CSS interactivity: inert support.
+    // All slides start hidden; _syncActiveStates() reveals visible ones.
+    Array.from(this.children).filter(el => !el.slot).forEach(el => {
+      el.setAttribute('aria-hidden', 'true');
+      el.querySelectorAll('a, button, input, select, textarea').forEach(c => c.setAttribute('tabindex', '-1'));
     });
-
-    // Group 2: external elements declared via [related-carousel] — kept in tab order while carousel is connected
-    if (this.id) {
-      document.querySelectorAll('[related-carousel="' + this.id + '"]')
-        .forEach(el => el.removeAttribute('tabindex'));
-    }
   }
 
   _setupExternalNavButtons() {
     if (!this.id) return;
     document.querySelectorAll('[related-carousel="' + this.id + '"]').forEach(el => {
-      el.removeAttribute('tabindex');
       const handler = () => {
         if (el.classList.contains('prev')) this.prev();
         else if (el.classList.contains('next')) this.next();
+        else if (el.classList.contains('play-pause')) this._toggleAutoplay();
       };
       el.addEventListener('click', handler);
+      el.addEventListener('focusin', this._onGroupFocusIn);
+      el.addEventListener('focusout', this._onGroupFocusOut);
       this._externalNavListeners.push({ el, handler });
+
+      if (el.classList.contains('prev')) {
+        this._externalPrev = el;
+        el.setAttribute('tabindex', '-1');
+      } else if (el.classList.contains('next')) {
+        this._externalNext = el;
+        el.setAttribute('tabindex', '-1');
+      }
     });
+    this._setupFocusManagement();
+  }
+
+  _setupFocusManagement() {
+    this._teardownFocusManagement();
+
+    const chain = [];
+    if (this.hasAttribute('autoplay') && this.playPauseBtn) chain.push(this.playPauseBtn);
+    if (this._externalPrev) chain.push(this._externalPrev);
+    if (this._externalNext) chain.push(this._externalNext);
+    this.dotsContainer.querySelectorAll('.dot').forEach(d => chain.push(d));
+
+    if (chain.length === 0) return;
+
+    const addListener = (el, event, handler) => {
+      el.addEventListener(event, handler);
+      this._focusChainCleanup.push(() => el.removeEventListener(event, handler));
+    };
+
+    // Tab on host → first chain element
+    addListener(this, 'keydown', (e) => {
+      if (e.key !== 'Tab' || e.shiftKey) return;
+      if (e.composedPath()[0] !== this) return;
+      e.preventDefault();
+      chain[0].focus();
+    });
+
+    // Tab / Shift+Tab between chain elements
+    chain.forEach((el, i) => {
+      addListener(el, 'keydown', (e) => {
+        if (e.key !== 'Tab') return;
+        e.stopPropagation();
+
+        if (e.shiftKey) {
+          e.preventDefault();
+          if (i === 0) this.focus();
+          else chain[i - 1].focus();
+        } else if (i < chain.length - 1) {
+          e.preventDefault();
+          chain[i + 1].focus();
+        } else {
+          // Last chain element → focus first active slide content
+          const activeSlide = this.querySelector('[data-active]:not(.clone)');
+          if (activeSlide) {
+            const focusable = activeSlide.querySelector('a, button, input, select, textarea, [tabindex="0"]');
+            if (focusable) { e.preventDefault(); focusable.focus(); return; }
+          }
+          // No focusable slide content: let browser handle (exit carousel)
+        }
+      });
+    });
+  }
+
+  _teardownFocusManagement() {
+    if (this._focusChainCleanup) {
+      this._focusChainCleanup.forEach(fn => fn());
+      this._focusChainCleanup = [];
+    }
   }
 
   _deferredInit() {
@@ -368,7 +504,7 @@ class FacelessCarousel extends BaseElement {
   _init() {
     this.state.isInitializing = true;
     this.querySelectorAll('.clone').forEach(el => el.remove());
-    const rawSlides = Array.from(this.children).filter(el => !el.classList.contains('clone'));
+    const rawSlides = Array.from(this.children).filter(el => !el.classList.contains('clone') && !el.slot);
     if (!rawSlides.length) { this.state.isInitializing = false; return; }
 
     rawSlides.forEach((slide, idx) => slide.setAttribute('data-slide-idx', idx));
@@ -409,6 +545,7 @@ class FacelessCarousel extends BaseElement {
       this._measure();
       this.state.isInitializing = false;
       if (this.hasAttribute('autoplay')) this._startAutoplay();
+      this._updateAriaLive();
     }, 0);
 
     this._applyA11yDefaults();
@@ -418,7 +555,7 @@ class FacelessCarousel extends BaseElement {
   _watchOriginals() {
     if (this._hydrationObserver) this._hydrationObserver.disconnect();
 
-    const rawSlides = Array.from(this.children).filter(el => !el.classList.contains('clone'));
+    const rawSlides = Array.from(this.children).filter(el => !el.classList.contains('clone') && !el.slot);
 
     this._hydrationObserver = new MutationObserver(() => {
       clearTimeout(this._hydrationTimer);
@@ -434,7 +571,7 @@ class FacelessCarousel extends BaseElement {
   }
 
   _refreshClones() {
-    const rawSlides = Array.from(this.children).filter(el => !el.classList.contains('clone'));
+    const rawSlides = Array.from(this.children).filter(el => !el.classList.contains('clone') && !el.slot);
     const clones = Array.from(this.querySelectorAll('.clone'));
 
     clones.forEach(clone => {
@@ -467,8 +604,10 @@ class FacelessCarousel extends BaseElement {
     const speed = parseFloat(this.getAttribute('speed'));
 
     if (!isDragging) {
-      if (!isNaN(speed) && speed !== 0) {
+      if (!isNaN(speed) && speed !== 0 && !this.state.isUserPaused && !this.state.isPaused) {
         this.state.currentTranslate -= speed;
+        this.state.targetTranslate = this.state.currentTranslate;
+      } else if (this.hasAttribute('no-snap') && (this.state.isPaused || this.state.isUserPaused)) {
         this.state.targetTranslate = this.state.currentTranslate;
       } else {
         const diff = targetTranslate - currentTranslate;
@@ -540,7 +679,7 @@ class FacelessCarousel extends BaseElement {
     const { currentTranslate, stride, cloneCount } = this.state;
     const relativePos = currentTranslate - (-(cloneCount * stride));
     this.goTo(Math.round(-(relativePos / stride)));
-    if (this.hasAttribute('autoplay')) this._startAutoplay();
+    if (this.hasAttribute('autoplay') && !this.state.isUserPaused) this._startAutoplay();
   }
 
   _onKeyDown(e) {
@@ -563,15 +702,19 @@ class FacelessCarousel extends BaseElement {
       const dot = document.createElement('button');
       dot.classList.add('dot');
       dot.setAttribute('part', 'dot');
+      dot.setAttribute('role', 'tab');
+      dot.setAttribute('aria-label', `Slide ${i + 1}`);
+      dot.setAttribute('aria-selected', 'false');
       dot.addEventListener('click', () => { this.goTo(i); this._stopAutoplay(); });
       this.dotsContainer.appendChild(dot);
     }
     this._syncActiveStates();
+    this._setupFocusManagement();
   }
 
   _startAutoplay() {
     this._stopAutoplay();
-    if (this.state.isPaused || this.state.isDragging) return;
+    if (this.state.isPaused || this.state.isDragging || this.state.isUserPaused) return;
     const interval = parseInt(this.getAttribute('interval')) || 3000;
     this.state.autoplayTimer = setInterval(() => {
         if (!this.hasAttribute('loop') && this.state.currentIndex >= this.state.realCount - 1) {
@@ -583,10 +726,74 @@ class FacelessCarousel extends BaseElement {
 
   _stopAutoplay() { if (this.state.autoplayTimer) { clearInterval(this.state.autoplayTimer); this.state.autoplayTimer = null; } }
   _toggleDots() { if (this.dotsContainer) this.dotsContainer.hidden = !this.hasAttribute('show-dots'); }
+  _onGroupFocusIn() {
+    cancelAnimationFrame(this._focusOutRaf);
+    this._setPaused(true);
+  }
+
+  _onGroupFocusOut() {
+    cancelAnimationFrame(this._focusOutRaf);
+    this._focusOutRaf = requestAnimationFrame(() => {
+      const active = document.activeElement;
+      const isInCarousel = this.contains(active);
+      const isOnExternalNav = this._externalNavListeners.some(({ el }) => el === active || el.contains(active));
+      if (!isInCarousel && !isOnExternalNav) {
+        this._setPaused(false);
+      }
+    });
+  }
+
   _setPaused(paused) {
     this.state.isPaused = paused;
-    if (!paused && this.hasAttribute('autoplay')) this._startAutoplay();
-    else this._stopAutoplay();
+    if (paused) {
+      this._stopAutoplay();
+    } else if (this.hasAttribute('autoplay') && !this.state.isUserPaused) {
+      this._startAutoplay();
+    }
+    this._updateAriaLive();
+  }
+
+  _toggleAutoplay() {
+    this.state.isUserPaused = !this.state.isUserPaused;
+    if (this.state.isUserPaused) {
+      this._stopAutoplay();
+    } else if (this.hasAttribute('autoplay')) {
+      this._startAutoplay();
+    }
+    this._updatePlayPauseButton();
+    this._updateAriaLive();
+  }
+
+  _updatePlayPauseButton() {
+    const paused = this.state.isUserPaused;
+    if (this.playPauseBtn) {
+      this.playPauseBtn.textContent = paused ? '\u25B6' : '\u23F8';
+      this.playPauseBtn.setAttribute('aria-label', paused ? 'Start auto-rotation' : 'Pause auto-rotation');
+    }
+    this._externalNavListeners.forEach(({ el }) => {
+      if (el.classList.contains('play-pause')) {
+        el.setAttribute('data-paused', String(paused));
+        el.setAttribute('aria-label', paused ? 'Start auto-rotation' : 'Pause auto-rotation');
+      }
+    });
+  }
+
+  _updateAriaLive() {
+    if (!this.track || !this.srAnnouncer) return;
+
+    const style = getComputedStyle(this);
+    const itemsPerView = parseFloat(this.getAttribute('items-per-view'))
+      || parseFloat(style.getPropertyValue('--items-per-view'))
+      || 1;
+    const isMultiSlide = itemsPerView > 1;
+
+    const isAutoRotating = this.hasAttribute('autoplay')
+      && !this.state.isPaused
+      && !this.state.isUserPaused;
+
+    const value = (isMultiSlide || isAutoRotating) ? 'off' : 'polite';
+    this.track.setAttribute('aria-live', value);
+    this.srAnnouncer.setAttribute('aria-live', value);
   }
   _onResize() { this._measure(); }
 }

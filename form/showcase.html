@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,18 +14,18 @@
 
 
     <!-- ─────────────────────────────────────────────────────────────────────
-         Demo 1 — Einfaches Kontaktformular
+         Demo 1 — Simple Contact Form
          Required fields + type validation, no custom messages
     ──────────────────────────────────────────────────────────────────────── -->
-    <h2>1. Einfaches Kontaktformular</h2>
-    <p>Basis-Formular mit <code>required</code>-Feldern und <code>type="email"</code>-Validierung. Fehlermeldungen kommen vom Browser.</p>
+    <h2>1. Simple Contact Form</h2>
+    <p>Basic form with <code>required</code> fields and <code>type="email"</code> validation. Error messages come from the browser.</p>
 
     <div class="form-card">
         <div id="demo1-success" class="success-msg" aria-hidden="true" role="status">
-            Nachricht gesendet — vielen Dank!
+            Message sent — thank you!
         </div>
 
-        <faceless-form id="form1" aria-label="Kontaktformular" action="/contact" method="post">
+        <faceless-form id="form1" aria-label="Contact form" action="/contact" method="post">
 
             <faceless-input
                 name="name"
@@ -37,28 +37,28 @@
             <faceless-input
                 name="email"
                 type="email"
-                label="E-Mail"
+                label="Email"
                 required
                 autocomplete="email"
                 pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
-                error-required="Bitte gib eine E-Mail-Adresse ein."
-                error-type="Keine gültige E-Mail-Adresse."
-                error-pattern="Bitte gib eine vollständige E-Mail-Adresse an (z. B. name@beispiel.de).">
+                error-required="Please enter an email address."
+                error-type="Not a valid email address."
+                error-pattern="Please enter a complete email address (e.g. name@example.com).">
             </faceless-input>
 
             <faceless-input
                 element="textarea"
                 name="message"
-                label="Nachricht"
+                label="Message"
                 required
                 rows="4">
             </faceless-input>
 
-            <button type="submit" class="submit-btn">Absenden</button>
+            <button type="submit" class="submit-btn">Submit</button>
         </faceless-form>
 
-        <div class="event-log" id="log1" aria-label="Event-Log Demo 1" aria-live="polite">
-            <p>— Warte auf form-submit …</p>
+        <div class="event-log" id="log1" aria-label="Event log Demo 1" aria-live="polite">
+            <p>— Waiting for form-submit …</p>
         </div>
     </div>
 
@@ -82,57 +82,57 @@
 
 
     <!-- ─────────────────────────────────────────────────────────────────────
-         Demo 1b — E-Mail: HTML-Standard vs. TLD-Pflicht
-         Zeigt den Unterschied zwischen type="email" ohne und mit pattern
+         Demo 1b — Email: HTML Standard vs. TLD Requirement
+         Shows the difference between type="email" without and with pattern
     ──────────────────────────────────────────────────────────────────────── -->
-    <h2>1b. E-Mail: HTML-Standard vs. <code>pattern</code></h2>
+    <h2>1b. Email: HTML Standard vs. <code>pattern</code></h2>
     <p>
-        Der HTML5-Standard akzeptiert <code>foo@bar</code> als gültige E-Mail — kein TLD nötig.
-        Mit dem <code>pattern</code>-Attribut auf <code>&lt;faceless-input&gt;</code> lässt sich das verschärfen.
-        Teste beide mit <code>foo@bar</code> (kein TLD) und <code>foo@bar.de</code> (mit TLD).
+        The HTML5 standard accepts <code>foo@bar</code> as a valid email — no TLD required.
+        The <code>pattern</code> attribute on <code>&lt;faceless-input&gt;</code> enforces stricter rules.
+        Try both with <code>foo@bar</code> (no TLD) and <code>foo@bar.com</code> (with TLD).
     </p>
 
     <div class="comparison-grid">
 
         <div class="form-card">
-            <p class="comparison-label">Ohne pattern</p>
-            <p class="comparison-note">Nur <code>type="email"</code> — Browser-Standard. <code>foo@bar</code> gilt als valide.</p>
-            <faceless-form id="form-cmp-a" aria-label="E-Mail ohne Pattern">
+            <p class="comparison-label">Without pattern</p>
+            <p class="comparison-note">Only <code>type="email"</code> — browser standard. <code>foo@bar</code> is valid.</p>
+            <faceless-form id="form-cmp-a" aria-label="Email without pattern">
                 <faceless-input
                     name="email"
                     type="email"
-                    label="E-Mail"
+                    label="Email"
                     required
                     autocomplete="email"
-                    error-required="E-Mail ist Pflicht."
-                    error-type="Keine gültige E-Mail-Adresse.">
+                    error-required="Email is required."
+                    error-type="Not a valid email address.">
                 </faceless-input>
-                <button type="submit" class="submit-btn">Prüfen</button>
+                <button type="submit" class="submit-btn">Check</button>
             </faceless-form>
-            <div class="event-log" id="log-cmp-a" aria-label="Ergebnis ohne Pattern" aria-live="polite">
-                <p>— Warte auf Eingabe …</p>
+            <div class="event-log" id="log-cmp-a" aria-label="Result without pattern" aria-live="polite">
+                <p>— Waiting for input …</p>
             </div>
         </div>
 
         <div class="form-card">
-            <p class="comparison-label">Mit pattern</p>
-            <p class="comparison-note">TLD wird erzwungen. <code>foo@bar</code> schlägt fehl, <code>foo@bar.de</code> ist valide.</p>
-            <faceless-form id="form-cmp-b" aria-label="E-Mail mit Pattern">
+            <p class="comparison-label">With pattern</p>
+            <p class="comparison-note">TLD is enforced. <code>foo@bar</code> fails, <code>foo@bar.com</code> is valid.</p>
+            <faceless-form id="form-cmp-b" aria-label="Email with pattern">
                 <faceless-input
                     name="email"
                     type="email"
-                    label="E-Mail"
+                    label="Email"
                     required
                     autocomplete="email"
                     pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
-                    error-required="E-Mail ist Pflicht."
-                    error-type="Keine gültige E-Mail-Adresse."
-                    error-pattern="Bitte vollständige Domain angeben (z. B. name@beispiel.de).">
+                    error-required="Email is required."
+                    error-type="Not a valid email address."
+                    error-pattern="Please include a full domain (e.g. name@example.com).">
                 </faceless-input>
-                <button type="submit" class="submit-btn">Prüfen</button>
+                <button type="submit" class="submit-btn">Check</button>
             </faceless-form>
-            <div class="event-log" id="log-cmp-b" aria-label="Ergebnis mit Pattern" aria-live="polite">
-                <p>— Warte auf Eingabe …</p>
+            <div class="event-log" id="log-cmp-b" aria-label="Result with pattern" aria-live="polite">
+                <p>— Waiting for input …</p>
             </div>
         </div>
 
@@ -144,8 +144,8 @@
                 const log = document.getElementById(`log-cmp-${id}`);
                 const cls = e.detail.valid ? 'log-valid' : 'log-invalid';
                 const icon = e.detail.valid ? '✅' : '❌';
-                const value = e.detail.values.email || '(leer)';
-                log.innerHTML = `<p class="${cls}">${icon} "${value}" → ${e.detail.valid ? 'valide' : Object.values(e.detail.errors)[0]}</p>`;
+                const value = e.detail.values.email || '(empty)';
+                log.innerHTML = `<p class="${cls}">${icon} "${value}" → ${e.detail.valid ? 'valid' : Object.values(e.detail.errors)[0]}</p>`;
             });
         });
     </script>
@@ -156,51 +156,51 @@
          error-required, error-type, error-message
     ──────────────────────────────────────────────────────────────────────── -->
     <h2>2. Custom Error Messages</h2>
-    <p>Jedes Feld hat eigene Fehlermeldungen über <code>error-required</code>, <code>error-type</code> und <code>error-message</code>.</p>
+    <p>Each field has its own error messages via <code>error-required</code>, <code>error-type</code>, and <code>error-message</code>.</p>
 
     <div class="form-card">
-        <faceless-form id="form2" aria-label="Registrierungsformular">
+        <faceless-form id="form2" aria-label="Registration form">
 
             <faceless-input
                 name="username"
-                label="Benutzername"
+                label="Username"
                 required
                 minlength="3"
                 autocomplete="username"
-                hint="Mindestens 3 Zeichen"
-                error-required="Bitte wähle einen Benutzernamen."
-                error-message="Der Benutzername darf nur Buchstaben, Zahlen und Unterstriche enthalten.">
+                hint="At least 3 characters"
+                error-required="Please choose a username."
+                error-message="Username may only contain letters, numbers, and underscores.">
             </faceless-input>
 
             <faceless-input
                 name="email"
                 type="email"
-                label="E-Mail"
+                label="Email"
                 required
                 autocomplete="email"
                 pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
-                error-required="Eine E-Mail-Adresse ist Pflicht."
-                error-type="Bitte gib eine gültige E-Mail-Adresse ein (z. B. name@beispiel.de)."
-                error-pattern="Bitte gib eine vollständige E-Mail-Adresse an (z. B. name@beispiel.de).">
+                error-required="An email address is required."
+                error-type="Please enter a valid email address (e.g. name@example.com)."
+                error-pattern="Please enter a complete email address (e.g. name@example.com).">
             </faceless-input>
 
             <faceless-input
                 name="password"
                 type="password"
-                label="Passwort"
+                label="Password"
                 required
                 minlength="8"
                 autocomplete="new-password"
-                hint="Mindestens 8 Zeichen"
-                error-required="Ein Passwort ist erforderlich."
-                error-message="Das Passwort muss mindestens 8 Zeichen lang sein.">
+                hint="At least 8 characters"
+                error-required="A password is required."
+                error-message="Password must be at least 8 characters long.">
             </faceless-input>
 
-            <button type="submit" class="submit-btn">Registrieren</button>
+            <button type="submit" class="submit-btn">Register</button>
         </faceless-form>
 
-        <div class="event-log" id="log2" aria-label="Event-Log Demo 2" aria-live="polite">
-            <p>— Warte auf form-submit …</p>
+        <div class="event-log" id="log2" aria-label="Event log Demo 2" aria-live="polite">
+            <p>— Waiting for form-submit …</p>
         </div>
     </div>
 
@@ -219,35 +219,35 @@
 
     <!-- ─────────────────────────────────────────────────────────────────────
          Demo 3 — Custom Regex (pattern)
-         Telefon + Postleitzahl mit pattern und error-pattern
+         Phone + zip code with pattern and error-pattern
     ──────────────────────────────────────────────────────────────────────── -->
     <h2>3. Custom Regex (<code>pattern</code>)</h2>
-    <p>Felder mit <code>pattern</code>-Attribut. Die Komponente setzt das Muster auf das interne <code>input[pattern]</code>.</p>
+    <p>Fields with a <code>pattern</code> attribute. The component forwards the pattern to the internal <code>input[pattern]</code>.</p>
 
     <div class="form-card">
-        <faceless-form id="form3" aria-label="Adressformular">
+        <faceless-form id="form3" aria-label="Address form">
 
             <faceless-input
                 name="phone"
                 type="tel"
-                label="Telefon"
+                label="Phone"
                 required
                 autocomplete="tel"
-                hint="Format: +49 30 12345678 oder 0301234567"
+                hint="Format: +1 555 123 4567 or 5551234567"
                 pattern="^\+?[0-9\s\-]{7,}$"
-                error-required="Bitte gib eine Telefonnummer ein."
-                error-pattern="Ungültige Telefonnummer — mindestens 7 Ziffern, optional +, Leerzeichen und Bindestriche.">
+                error-required="Please enter a phone number."
+                error-pattern="Invalid phone number — at least 7 digits, optionally +, spaces, and hyphens.">
             </faceless-input>
 
             <faceless-input
                 name="zip"
-                label="Postleitzahl"
+                label="Zip Code"
                 required
                 autocomplete="postal-code"
-                hint="5-stellige deutsche PLZ"
+                hint="5-digit US zip code"
                 pattern="^\d{5}$"
-                error-required="Bitte gib eine Postleitzahl ein."
-                error-pattern="Die Postleitzahl muss genau 5 Ziffern haben.">
+                error-required="Please enter a zip code."
+                error-pattern="Zip code must be exactly 5 digits.">
             </faceless-input>
 
             <faceless-input
@@ -256,14 +256,14 @@
                 autocomplete="off"
                 hint="Format: DE89370400440532013000"
                 pattern="^DE\d{2}[0-9A-Z]{18}$"
-                error-pattern="Ungültige IBAN — Format: DE + 2 Prüfziffern + 18 Stellen.">
+                error-pattern="Invalid IBAN — format: DE + 2 check digits + 18 characters.">
             </faceless-input>
 
-            <button type="submit" class="submit-btn">Weiter</button>
+            <button type="submit" class="submit-btn">Continue</button>
         </faceless-form>
 
-        <div class="event-log" id="log3" aria-label="Event-Log Demo 3" aria-live="polite">
-            <p>— Warte auf form-submit …</p>
+        <div class="event-log" id="log3" aria-label="Event log Demo 3" aria-live="polite">
+            <p>— Waiting for form-submit …</p>
         </div>
     </div>
 
@@ -281,56 +281,56 @@
 
 
     <!-- ─────────────────────────────────────────────────────────────────────
-         Demo 4 — Mit Error-Summary
-         data-error-summary im Markup; focus geht nach Summary bei Submit
+         Demo 4 — Error Summary
+         data-error-summary in markup; focus moves to summary on submit
     ──────────────────────────────────────────────────────────────────────── -->
-    <h2>4. Mit Error-Summary</h2>
-    <p>Der <code>[data-error-summary]</code>-Block sammelt alle Fehler als verlinkte Liste. Nach dem Absenden wird der Fokus darauf gesetzt. Die Checkbox nutzt verboses Markup (Label umschließt Input).</p>
+    <h2>4. Error Summary</h2>
+    <p>The <code>[data-error-summary]</code> block collects all errors as a linked list. After submit, focus moves to the summary. The checkbox uses verbose markup (label wraps input).</p>
 
     <div class="form-card">
-        <faceless-form id="form4" aria-label="Bestellformular">
+        <faceless-form id="form4" aria-label="Order form">
 
             <div data-error-summary hidden></div>
 
             <faceless-input
                 name="firstname"
-                label="Vorname"
+                label="First Name"
                 required
                 autocomplete="given-name"
-                error-required="Bitte gib deinen Vornamen ein.">
+                error-required="Please enter your first name.">
             </faceless-input>
 
             <faceless-input
                 name="lastname"
-                label="Nachname"
+                label="Last Name"
                 required
                 autocomplete="family-name"
-                error-required="Bitte gib deinen Nachnamen ein.">
+                error-required="Please enter your last name.">
             </faceless-input>
 
             <faceless-input
                 name="city"
-                label="Stadt"
+                label="City"
                 required
                 autocomplete="address-level2"
-                error-required="Bitte gib deine Stadt an.">
+                error-required="Please enter your city.">
             </faceless-input>
 
-            <!-- Checkbox: verboses Markup nötig (Label umschließt Input) -->
+            <!-- Checkbox: verbose markup required (label wraps input) -->
             <div data-field="terms"
-                 data-error-required="Du musst die Nutzungsbedingungen akzeptieren.">
+                 data-error-required="You must accept the terms and conditions.">
                 <label data-label>
                     <input data-input type="checkbox" required>
-                    Ich akzeptiere die Nutzungsbedingungen
+                    I accept the terms and conditions
                 </label>
                 <span data-error></span>
             </div>
 
-            <button type="submit" class="submit-btn">Bestellung abschicken</button>
+            <button type="submit" class="submit-btn">Place Order</button>
         </faceless-form>
 
-        <div class="event-log" id="log4" aria-label="Event-Log Demo 4" aria-live="polite">
-            <p>— Warte auf form-submit …</p>
+        <div class="event-log" id="log4" aria-label="Event log Demo 4" aria-live="polite">
+            <p>— Waiting for form-submit …</p>
         </div>
     </div>
 
@@ -349,59 +349,59 @@
 
     <!-- ─────────────────────────────────────────────────────────────────────
          Demo 5 — Textarea + Select
-         Verschiedene Input-Typen via element-Attribut
+         Different input types via element attribute
     ──────────────────────────────────────────────────────────────────────── -->
     <h2>5. Textarea + Select</h2>
-    <p><code>&lt;faceless-input&gt;</code> unterstützt <code>element="select"</code> und <code>element="textarea"</code> für verschiedene Steuerelemente.</p>
+    <p><code>&lt;faceless-input&gt;</code> supports <code>element="select"</code> and <code>element="textarea"</code> for different control types.</p>
 
     <div class="form-card">
-        <faceless-form id="form5" aria-label="Feedback-Formular">
+        <faceless-form id="form5" aria-label="Feedback form">
 
             <faceless-input
                 element="select"
                 name="subject"
-                label="Thema"
+                label="Subject"
                 required
-                error-required="Bitte wähle ein Betreff-Thema.">
-                <option value="">— Bitte wählen —</option>
-                <option value="support">Support & Hilfe</option>
+                error-required="Please choose a subject.">
+                <option value="">— Please select —</option>
+                <option value="support">Support & Help</option>
                 <option value="feedback">Feedback</option>
-                <option value="billing">Abrechnung</option>
-                <option value="other">Sonstiges</option>
+                <option value="billing">Billing</option>
+                <option value="other">Other</option>
             </faceless-input>
 
             <faceless-input
                 name="rating"
                 type="number"
-                label="Bewertung (1–5)"
+                label="Rating (1–5)"
                 required
                 min="1"
                 max="5"
                 step="1"
                 autocomplete="off"
-                hint="1 = sehr schlecht, 5 = sehr gut"
-                error-required="Bitte gib eine Bewertung ab."
-                error-message="Bitte wähle einen Wert zwischen 1 und 5.">
+                hint="1 = very poor, 5 = excellent"
+                error-required="Please provide a rating."
+                error-message="Please choose a value between 1 and 5.">
             </faceless-input>
 
             <faceless-input
                 element="textarea"
                 name="feedback"
-                label="Dein Feedback"
+                label="Your Feedback"
                 required
                 minlength="20"
                 rows="5"
                 autocomplete="off"
-                hint="Mindestens 20 Zeichen"
-                error-required="Bitte schreib ein kurzes Feedback."
-                error-message="Dein Feedback muss mindestens 20 Zeichen lang sein.">
+                hint="At least 20 characters"
+                error-required="Please write some feedback."
+                error-message="Your feedback must be at least 20 characters long.">
             </faceless-input>
 
-            <button type="submit" class="submit-btn">Feedback senden</button>
+            <button type="submit" class="submit-btn">Send Feedback</button>
         </faceless-form>
 
-        <div class="event-log" id="log5" aria-label="Event-Log Demo 5" aria-live="polite">
-            <p>— Warte auf form-submit …</p>
+        <div class="event-log" id="log5" aria-label="Event log Demo 5" aria-live="polite">
+            <p>— Waiting for form-submit …</p>
         </div>
     </div>
 
@@ -419,15 +419,15 @@
 
 
     <!-- ─────────────────────────────────────────────────────────────────────
-         Demo 6 — Externe API
-         setError, clearError, setErrors, reset — simulierter Server-Fehler
+         Demo 6 — External API
+         setError, clearError, setErrors, reset — simulated server error
     ──────────────────────────────────────────────────────────────────────── -->
-    <h2>6. Externe API</h2>
-    <p>Buttons rufen <code>.setError()</code>, <code>.clearError()</code>, <code>.setErrors()</code> und <code>.reset()</code> direkt auf der Komponente auf. Simuliert serverseitige Fehler.</p>
+    <h2>6. External API</h2>
+    <p>Buttons call <code>.setError()</code>, <code>.clearError()</code>, <code>.setErrors()</code>, and <code>.reset()</code> directly on the component. Simulates server-side errors.</p>
 
     <div class="api-controls">
-        <button onclick="setServerError()">Server: E-Mail vergeben</button>
-        <button onclick="setMultipleErrors()">setErrors() — 2 Fehler</button>
+        <button onclick="setServerError()">Server: email taken</button>
+        <button onclick="setMultipleErrors()">setErrors() — 2 errors</button>
         <button onclick="clearSingleError()">clearError('email')</button>
         <button onclick="document.getElementById('form6').clearErrors()">clearErrors()</button>
         <button onclick="document.getElementById('form6').reset()">reset()</button>
@@ -436,7 +436,7 @@
     </div>
 
     <div class="form-card">
-        <faceless-form id="form6" aria-label="Anmeldeformular">
+        <faceless-form id="form6" aria-label="Sign-up form">
 
             <div data-error-summary hidden></div>
 
@@ -445,20 +445,20 @@
                 label="Name"
                 required
                 autocomplete="name"
-                hint="Vor- und Nachname"
-                error-required="Bitte gib deinen Namen ein.">
+                hint="First and last name"
+                error-required="Please enter your name.">
             </faceless-input>
 
             <faceless-input
                 name="email"
                 type="email"
-                label="E-Mail"
+                label="Email"
                 required
                 autocomplete="email"
                 pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
-                error-required="E-Mail-Adresse ist Pflicht."
-                error-type="Keine gültige E-Mail-Adresse."
-                error-pattern="Bitte gib eine vollständige E-Mail-Adresse an (z. B. name@beispiel.de).">
+                error-required="Email address is required."
+                error-type="Not a valid email address."
+                error-pattern="Please enter a complete email address (e.g. name@example.com).">
             </faceless-input>
 
             <faceless-input
@@ -466,15 +466,15 @@
                 type="url"
                 label="Website (optional)"
                 autocomplete="url"
-                hint="https://beispiel.de"
-                error-type="Bitte gib eine gültige URL ein (z. B. https://beispiel.de).">
+                hint="https://example.com"
+                error-type="Please enter a valid URL (e.g. https://example.com).">
             </faceless-input>
 
-            <button type="submit" class="submit-btn">Anmelden</button>
+            <button type="submit" class="submit-btn">Sign Up</button>
         </faceless-form>
 
-        <div class="event-log" id="log6" aria-label="Event-Log Demo 6" aria-live="polite">
-            <p>— Warte auf Interaktion …</p>
+        <div class="event-log" id="log6" aria-label="Event log Demo 6" aria-live="polite">
+            <p>— Waiting for interaction …</p>
         </div>
     </div>
 
@@ -492,21 +492,21 @@
         });
 
         function setServerError() {
-            form6.setError('email', 'Diese E-Mail-Adresse ist bereits registriert.');
+            form6.setError('email', 'This email address is already registered.');
             log6.innerHTML = '<p class="log-invalid">setError("email", "…")</p>';
         }
 
         function setMultipleErrors() {
             form6.setErrors({
-                name: 'Dieser Name enthält unzulässige Zeichen.',
-                email: 'Diese E-Mail-Adresse ist bereits registriert.',
+                name: 'This name contains invalid characters.',
+                email: 'This email address is already registered.',
             });
             log6.innerHTML = '<p class="log-invalid">setErrors({ name, email })</p>';
         }
 
         function clearSingleError() {
             form6.clearError('email');
-            log6.innerHTML = '<p>clearError("email") aufgerufen</p>';
+            log6.innerHTML = '<p>clearError("email") called</p>';
         }
 
         function logValues() {
@@ -524,61 +524,61 @@
 
 
     <!-- ─────────────────────────────────────────────────────────────────────
-         Demo 7 — Alternative: Verboses Markup
+         Demo 7 — Alternative: Verbose Markup
          Shows the verbose pattern for cases that need full DOM control
     ──────────────────────────────────────────────────────────────────────── -->
-    <h2>7. Alternative: Verboses Markup</h2>
+    <h2>7. Alternative: Verbose Markup</h2>
     <p>
-        Für Sonderfälle (Checkboxen, Radios, komplexe Label-Strukturen) oder wenn volle Kontrolle
-        über das DOM nötig ist, kann das verbose Markup direkt verwendet werden.
-        Beide Muster lassen sich im selben Formular mischen.
+        For special cases (checkboxes, radios, complex label structures) or when full DOM control
+        is needed, the verbose markup pattern can be used directly.
+        Both patterns can be mixed in the same form.
     </p>
 
     <div class="form-card">
-        <faceless-form id="form7" aria-label="Kontakt verbose">
+        <faceless-form id="form7" aria-label="Contact verbose">
 
             <div data-field="name"
-                 data-error-required="Name ist Pflicht.">
+                 data-error-required="Name is required.">
                 <label data-label>Name</label>
-                <input data-input type="text" required autocomplete="name" placeholder="Vor- und Nachname">
+                <input data-input type="text" required autocomplete="name" placeholder="First and last name">
                 <span data-error></span>
             </div>
 
             <div data-field="email"
                  data-pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
-                 data-error-required="E-Mail ist Pflicht."
-                 data-error-type="Keine gültige E-Mail-Adresse."
-                 data-error-pattern="Bitte vollständige Domain angeben.">
-                <label data-label>E-Mail</label>
-                <input data-input type="email" required autocomplete="email" placeholder="name@beispiel.de">
-                <span data-hint>Ihre geschäftliche E-Mail</span>
+                 data-error-required="Email is required."
+                 data-error-type="Not a valid email address."
+                 data-error-pattern="Please include a full domain.">
+                <label data-label>Email</label>
+                <input data-input type="email" required autocomplete="email" placeholder="name@example.com">
+                <span data-hint>Your business email</span>
                 <span data-error></span>
             </div>
 
             <div data-field="subject"
-                 data-error-required="Bitte wähle ein Thema.">
-                <label data-label>Thema</label>
+                 data-error-required="Please choose a subject.">
+                <label data-label>Subject</label>
                 <select data-input required>
-                    <option value="">— Bitte wählen —</option>
+                    <option value="">— Please select —</option>
                     <option value="support">Support</option>
                     <option value="feedback">Feedback</option>
-                    <option value="other">Sonstiges</option>
+                    <option value="other">Other</option>
                 </select>
                 <span data-error></span>
             </div>
 
             <div data-field="message"
-                 data-error-required="Bitte gib eine Nachricht ein.">
-                <label data-label>Nachricht</label>
-                <textarea data-input required rows="4" placeholder="Deine Nachricht …"></textarea>
+                 data-error-required="Please enter a message.">
+                <label data-label>Message</label>
+                <textarea data-input required rows="4" placeholder="Your message …"></textarea>
                 <span data-error></span>
             </div>
 
-            <button type="submit" class="submit-btn">Absenden</button>
+            <button type="submit" class="submit-btn">Submit</button>
         </faceless-form>
 
-        <div class="event-log" id="log7" aria-label="Event-Log Demo 7" aria-live="polite">
-            <p>— Warte auf form-submit …</p>
+        <div class="event-log" id="log7" aria-label="Event log Demo 7" aria-live="polite">
+            <p>— Waiting for form-submit …</p>
         </div>
     </div>
 
@@ -596,7 +596,7 @@
 
 
     <footer>
-        Faceless-form Component — Keine Abhängigkeiten.
+        Faceless-form Component — Zero dependencies.
     </footer>
 
 </body>

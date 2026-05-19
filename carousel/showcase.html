@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faceless-carousel Master Demo</title>
-    
+
     <script src="index.js" defer></script>
     <link rel="stylesheet" href="showcase.css">
 </head>
@@ -13,31 +13,31 @@
     <h1>Faceless-carousel Showroom</h1>
 
     <h2>1. Responsive Hero (Loop + Peek)</h2>
-    <p>Mobil: 1 Item | Desktop: 3 Items | 15% Peeking am Rand</p>
-    <faceless-carousel 
-        id="hero-carousel" 
-        loop 
-        show-dots 
-        peek="15%" 
-        peek-type="fade" 
+    <p>Mobile: 1 item | Desktop: 3 items | 15% peeking at edges</p>
+    <faceless-carousel
+        id="hero-carousel"
+        loop
+        show-dots
+        peek="15%"
+        peek-type="fade"
         mousewheel
     >
-        <div class="slide">1 <p>Entdecke mehr</p></div>
-        <div class="slide">2 <p>Nur für kurze Zeit</p></div>
+        <div class="slide">1 <p>Discover more</p></div>
+        <div class="slide">2 <p>Limited time only</p></div>
         <div class="slide">3 <p>Bestseller</p></div>
-        <div class="slide">4 <p>Neu eingetroffen</p></div>
-        <div class="slide">5 <p>Angebote</p></div>
+        <div class="slide">4 <p>New arrivals</p></div>
+        <div class="slide">5 <p>Deals</p></div>
     </faceless-carousel>
 
 
     <h2>2. Autoplay Brands (Hard Peek)</h2>
-    <p>Läuft von selbst, stoppt bei Hover oder Fokus. 50px Hard-Peek.</p>
-    <faceless-carousel 
-        autoplay 
-        interval="2500" 
-        loop 
-        items-per-view="4" 
-        gap="30" 
+    <p>Runs automatically, pauses on hover or focus. 50px hard peek.</p>
+    <faceless-carousel
+        autoplay
+        interval="2500"
+        loop
+        items-per-view="4"
+        gap="30"
         peek="50px"
     >
         <div class="slide" style="aspect-ratio: 3/1; font-size: 1.5rem;">LOGO A</div>
@@ -47,9 +47,9 @@
         <div class="slide" style="aspect-ratio: 3/1; font-size: 1.5rem;">LOGO E</div>
         <div class="slide" style="aspect-ratio: 3/1; font-size: 1.5rem;">LOGO F</div>
     </faceless-carousel>
-    <p>Läuft von selbst, stoppt bei drag.</p>
-    <faceless-carousel 
-        loop 
+    <p>Runs automatically, pauses on drag.</p>
+    <faceless-carousel
+        loop
         speed="1.5"
         items-per-view="4"
         gap="30"
@@ -63,20 +63,20 @@
     </faceless-carousel>
 
 
-    <h2>3. A11y & Interaktion</h2>
-    <p>Mit der Tab-Taste navigierbar. Springt automatisch zum Slide, wenn Link fokusiert wird.</p>
+    <h2>3. A11y & Interaction</h2>
+    <p>Navigable via Tab key. Automatically scrolls to the slide when a link receives focus.</p>
     <faceless-carousel id="custom-dots" items-per-view="2" gap="20" mousewheel>
         <div class="slide">
             <span>🎁</span>
-            <button onclick="alert('Geklickt!')">Aktion 1</button>
+            <button onclick="alert('Clicked!')">Action 1</button>
         </div>
         <div class="slide">
             <span>🚀</span>
-            <a href="#">Mehr erfahren</a>
+            <a href="#">Learn more</a>
         </div>
         <div class="slide">
             <span>⭐</span>
-            <button>Bewerten</button>
+            <button>Rate</button>
         </div>
         <div class="slide">
             <span>🔥</span>
@@ -84,11 +84,11 @@
         </div>
     </faceless-carousel>
 
-    <h2>4. Externe Navigation (Buttons)</h2>
-    <p>Die Buttons nutzen die öffentliche API (.next() / .prev()) der Komponente.</p>
+    <h2>4. External Navigation (Buttons)</h2>
+    <p>The buttons use the public API (.next() / .prev()) of the component.</p>
 
     <div class="carousel-wrapper">
-        <button class="nav-btn prev" related-carousel="api-demo" aria-label="Vorheriges Slide">
+        <button class="nav-btn prev" related-carousel="api-demo" aria-label="Previous slide">
             <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
         </button>
 
@@ -99,29 +99,29 @@
             <div class="slide" style="background: #dbeafe;">Slide D</div>
         </faceless-carousel>
 
-        <button class="nav-btn next" related-carousel="api-demo" aria-label="Nächstes Slide">
+        <button class="nav-btn next" related-carousel="api-demo" aria-label="Next slide">
             <svg viewBox="0 0 24 24" width="24" height="24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
         </button>
     </div>
 
     <h2>5. A11y Navigation Testing</h2>
-    <p>Testet Tab-Navigation, Screen-Reader-Landmark-Skip und Live-Announcements.</p>
+    <p>Tests tab navigation, screen reader landmark skip, and live announcements.</p>
     <ul style="font-size: 0.85rem; color: #6b7280; margin: 8px 0 20px; padding-left: 1.2em; line-height: 1.8;">
-        <li><kbd>Tab</kbd> — alle Slides sind erreichbar, auch wenn sie außerhalb des sichtbaren Bereichs liegen</li>
-        <li>Fokus auf einen Off-Screen-Slide → Carousel scrollt automatisch in den View</li>
-        <li>Screen Reader (NVDA: <kbd>R</kbd>, VoiceOver: <kbd>VO+U</kbd>) → Landmark-Navigation überspringt das Carousel komplett</li>
-        <li>Screen Reader: jeder Slide wird als „Slide N of 6, Gruppe" angesagt</li>
-        <li>Navigation via Pfeiltasten / Dots / Buttons → Screen Reader sagt „Slide X of 6" an</li>
+        <li><kbd>Tab</kbd> — all slides are reachable, even if they are off-screen</li>
+        <li>Focus on an off-screen slide → carousel automatically scrolls into view</li>
+        <li>Screen reader (NVDA: <kbd>R</kbd>, VoiceOver: <kbd>VO+U</kbd>) → landmark navigation skips the carousel entirely</li>
+        <li>Screen reader: each slide is announced as "Slide N of 6, group"</li>
+        <li>Navigation via arrow keys / dots / buttons → screen reader announces "Slide X of 6"</li>
     </ul>
 
     <div class="carousel-wrapper">
-        <button class="nav-btn prev" related-carousel="a11y-demo" aria-label="Vorheriges Slide">
+        <button class="nav-btn prev" related-carousel="a11y-demo" aria-label="Previous slide">
             <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
         </button>
 
         <faceless-carousel
             id="a11y-demo"
-            aria-label="Produkthighlights"
+            aria-label="Product highlights"
             loop
             items-per-view="2"
             gap="20"
@@ -129,44 +129,44 @@
             mousewheel
         >
             <div class="slide" style="background: #f0fdf4; flex-direction: column; gap: 12px;">
-                <strong>Produkt 1</strong>
-                <a href="#">Details ansehen →</a>
-                <button>In den Warenkorb</button>
+                <strong>Product 1</strong>
+                <a href="#">View details →</a>
+                <button>Add to cart</button>
             </div>
             <div class="slide" style="background: #fef9c3; flex-direction: column; gap: 12px;">
-                <strong>Produkt 2</strong>
-                <a href="#">Details ansehen →</a>
-                <button>In den Warenkorb</button>
+                <strong>Product 2</strong>
+                <a href="#">View details →</a>
+                <button>Add to cart</button>
             </div>
             <div class="slide" style="background: #fce7f3; flex-direction: column; gap: 12px;">
-                <strong>Produkt 3</strong>
-                <a href="#">Details ansehen →</a>
-                <button>In den Warenkorb</button>
+                <strong>Product 3</strong>
+                <a href="#">View details →</a>
+                <button>Add to cart</button>
             </div>
             <div class="slide" style="background: #e0f2fe; flex-direction: column; gap: 12px;">
-                <strong>Produkt 4</strong>
-                <a href="#">Details ansehen →</a>
-                <button>In den Warenkorb</button>
+                <strong>Product 4</strong>
+                <a href="#">View details →</a>
+                <button>Add to cart</button>
             </div>
             <div class="slide" style="background: #fde8d8; flex-direction: column; gap: 12px;">
-                <strong>Produkt 5</strong>
-                <a href="#">Details ansehen →</a>
-                <button>In den Warenkorb</button>
+                <strong>Product 5</strong>
+                <a href="#">View details →</a>
+                <button>Add to cart</button>
             </div>
             <div class="slide" style="background: #ede9fe; flex-direction: column; gap: 12px;">
-                <strong>Produkt 6</strong>
-                <a href="#">Details ansehen →</a>
-                <button>In den Warenkorb</button>
+                <strong>Product 6</strong>
+                <a href="#">View details →</a>
+                <button>Add to cart</button>
             </div>
         </faceless-carousel>
 
-        <button class="nav-btn next" related-carousel="a11y-demo" aria-label="Nächstes Slide">
+        <button class="nav-btn next" related-carousel="a11y-demo" aria-label="Next slide">
             <svg viewBox="0 0 24 24" width="24" height="24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
         </button>
     </div>
 
     <footer style="margin-top: 100px; text-align: center; color: #9ca3af; font-size: 0.8rem;">
-        Faceless-carousel Component v1.0 - Keine Abhängigkeiten.
+        Faceless-carousel Component v1.0 — Zero dependencies.
     </footer>
 
 </body>

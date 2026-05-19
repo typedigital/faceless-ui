@@ -251,8 +251,8 @@ class FacelessForm extends BaseElement {
     const count = Object.keys(errorsObj).length;
     this._announce(
       count === 1
-        ? '1 Fehler in diesem Formular'
-        : `${count} Fehler in diesem Formular`
+        ? '1 error in this form'
+        : `${count} errors in this form`
     );
   }
 
@@ -263,7 +263,7 @@ class FacelessForm extends BaseElement {
       summaryEl.hidden = true;
       summaryEl.innerHTML = '';
     }
-    this._announce('Alle Fehler behoben');
+    this._announce('All errors resolved');
   }
 
   getErrors() {
@@ -308,7 +308,7 @@ class FacelessForm extends BaseElement {
     });
 
     summaryEl.innerHTML = `
-      <p>${count === 1 ? '1 Fehler in diesem Formular' : `${count} Fehler in diesem Formular`}</p>
+      <p>${count === 1 ? '1 error in this form' : `${count} errors in this form`}</p>
       <ul>${items.join('')}</ul>
     `;
   }

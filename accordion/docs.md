@@ -60,7 +60,7 @@ The component automatically sets and updates these attributes. Use them as hooks
 
 **On panel elements:**
 - `aria-labelledby` — links to the trigger's generated `id`
-- `role="region"`
+- `role="region"` — only assigned when the trigger has an accessible name (see § 8)
 - `id` — auto-generated unique ID
 - `data-open` — present when the item is expanded
 
@@ -81,10 +81,12 @@ Setting `height: auto` after opening allows dynamic content to resize naturally 
 
 ### CSS Variable Control
 
-| Variable               | Description        | Default |
-|------------------------|--------------------|---------|
-| `--accordion-duration` | Transition duration | `300ms` |
-| `--accordion-easing`   | Transition easing   | `ease`  |
+| Variable                         | Description                 | Default                  |
+|----------------------------------|-----------------------------|--------------------------|
+| `--accordion-duration`           | Transition duration         | `300ms` (`0ms` when `prefers-reduced-motion: reduce`) |
+| `--accordion-easing`             | Transition easing           | `ease`                   |
+| `--accordion-focus-ring`         | Focus ring for role="button" triggers | `2px solid currentColor` |
+| `--accordion-focus-ring-offset`  | Focus ring offset           | `2px`                    |
 
 ```css
 faceless-accordion {
@@ -135,10 +137,55 @@ accordion.addEventListener('accordion-toggle', (e) => {
 
 ## 8. Accessibility
 
-- **ARIA:** Automatic `aria-expanded`, `aria-controls`, `aria-labelledby`, and `role="region"` management
-- **Keyboard:** Full WAI-ARIA Accordion Pattern support
-- **Disabled State:** `aria-disabled="true"` on disabled triggers, skipped in keyboard navigation
-- **Nested Safety:** Events from nested accordions do not propagate to parent accordions
+### ARIA Management
+- `aria-expanded` on every trigger reflects current open/closed state
+- `aria-controls` / `aria-labelledby` create bidirectional linkage between trigger and panel
+- `role="region"` is only added to panels whose trigger has an accessible name (text content, `aria-label`, or `aria-labelledby`). Panels without an accessible name receive no landmark role, preventing unnamed region landmarks from flooding screen reader navigation (WCAG 4.1.2)
+
+### Keyboard
+Full WAI-ARIA Accordion Pattern (Enter/Space, Arrow keys, Home, End). Disabled items are skipped.
+
+### Motion
+The `--accordion-duration` token is automatically set to `0ms` when `prefers-reduced-motion: reduce` is active (WCAG 2.2.2). This disables the height animation without affecting other transitions on consuming components.
+
+### Focus Ring — Non-Button Triggers
+When a non-`<button>` element is used as a trigger (e.g. a `<div>` or `<h3>`), the component adds `role="button"` and `tabindex="0"`. Because browsers only apply their native focus ring to interactive elements, the component injects a single global stylesheet on first registration to ensure `:focus-visible` is visible:
+
+```css
+[data-trigger][role="button"]:focus-visible {
+  outline: var(--accordion-focus-ring, 2px solid currentColor);
+  outline-offset: var(--accordion-focus-ring-offset, 2px);
+}
+```
+
+Override the CSS custom properties to match your design system:
+
+```css
+faceless-accordion {
+  --accordion-focus-ring: 2px solid #FF5959;
+  --accordion-focus-ring-offset: 4px;
+}
+```
+
+Native `<button>` triggers are unaffected — they retain their browser default focus ring.
+
+### Focus Preservation on Re-Initialisation
+When the slot content changes (e.g. a framework re-render triggers `slotchange`), `_init()` re-runs. The component captures the currently focused trigger before resetting state and restores focus after re-initialisation, preventing loss of keyboard position mid-interaction.
+
+### Accessible Name Validation
+If a trigger has no accessible name at init time, `console.warn` fires with the item index and guidance. This catches misconfigured markup early during development.
+
+### Disabled State
+`aria-disabled="true"` is set on the trigger. Because `aria-disabled` does not suppress pointer events or prevent focus, **consumers must add the following CSS** to complete the disabled behaviour:
+
+```css
+[data-disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+```
+
+Without `pointer-events: none`, a mouse user can still click a disabled trigger and the click will be ignored by the component logic — but the cursor does not communicate non-interactivity. Without `opacity`, the visual affordance of being disabled is absent.
 
 ---
 
@@ -197,7 +244,7 @@ faceless-accordion > div[data-open] {
   transform: rotate(-135deg);
 }
 
-/* Disabled items */
+/* Disabled items — both rules are required for correct UX */
 [data-disabled] {
   opacity: 0.5;
   pointer-events: none;

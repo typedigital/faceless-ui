@@ -2,6 +2,19 @@ const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefine
 
 let instanceCount = 0;
 
+// eslint-disable-next-line no-undef
+if (isBrowser && !document.getElementById('faceless-accordion-styles')) {
+  // eslint-disable-next-line no-undef
+  const focusStyle = document.createElement('style');
+  focusStyle.id = 'faceless-accordion-styles';
+  focusStyle.textContent = `[data-trigger][role="button"]:focus-visible {
+  outline: var(--accordion-focus-ring, 2px solid currentColor);
+  outline-offset: var(--accordion-focus-ring-offset, 2px);
+}`;
+  // eslint-disable-next-line no-undef
+  document.head.appendChild(focusStyle);
+}
+
 const template = isBrowser ? document.createElement('template') : null;
 if (template) template.innerHTML = `
 <style>
@@ -9,6 +22,9 @@ if (template) template.innerHTML = `
     display: block;
     --accordion-duration: 300ms;
     --accordion-easing: ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :host { --accordion-duration: 0ms; }
   }
 </style>
 <slot></slot>
@@ -46,6 +62,11 @@ class FacelessAccordion extends BaseElement {
   }
 
   _init() {
+    const focusedEl = document.activeElement; // eslint-disable-line no-undef
+    const focusedIndex = this.state.items.findIndex(
+      (i) => i.trigger === focusedEl || i.trigger.contains(focusedEl),
+    );
+
     const children = Array.from(this.children);
     this.state.items = [];
 
@@ -72,7 +93,18 @@ class FacelessAccordion extends BaseElement {
       trigger.setAttribute('aria-controls', panelId);
       panel.setAttribute('id', panelId);
       panel.setAttribute('aria-labelledby', triggerId);
-      panel.setAttribute('role', 'region');
+
+      const hasAccessibleName = trigger.textContent.trim()
+        || trigger.getAttribute('aria-label')
+        || trigger.getAttribute('aria-labelledby');
+
+      if (hasAccessibleName) {
+        panel.setAttribute('role', 'region');
+      } else {
+        panel.removeAttribute('role');
+        // eslint-disable-next-line no-console
+        console.warn(`[faceless-accordion] Item ${index}: trigger has no accessible name. Add text content, aria-label, or aria-labelledby.`);
+      }
 
       // Role + tabindex for non-button triggers
       if (trigger.tagName !== 'BUTTON') {
@@ -98,6 +130,13 @@ class FacelessAccordion extends BaseElement {
         panel.style.height = '0px';
       }
     });
+
+    if (focusedIndex !== -1) {
+      const refocusItem = this.state.items.find((i) => i.index === focusedIndex);
+      if (refocusItem) {
+        refocusItem.trigger.focus();
+      }
+    }
   }
 
   _setOpenAttrs(item, open) {
@@ -192,7 +231,7 @@ class FacelessAccordion extends BaseElement {
     this.dispatchEvent(new CustomEvent('accordion-toggle', {
       bubbles: true,
       composed: true,
-      detail: { index: item.index, item: item.el, open: item.open }
+      detail: { index: item.index, item: item.el, open: item.open },
     }));
   }
 

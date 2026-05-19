@@ -1,0 +1,305 @@
+:root {
+    --td-dark-blue: #171D26;
+    --td-sunset: #FF5958;
+    --td-platinum: #E3E5E5;
+
+    font-family: 'Nexa', sans-serif;
+    background-color: var(--td-platinum);
+    color: var(--td-dark-blue);
+}
+
+body { padding: 40px; max-width: 860px; margin: 0 auto; }
+
+/* ─── Comparison grid (two-column side by side) ─── */
+.comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+@media (max-width: 600px) {
+    .comparison-grid { grid-template-columns: 1fr; }
+}
+
+.comparison-label {
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+    margin: 0 0 4px;
+}
+
+.comparison-note {
+    font-size: 0.82rem;
+    color: #6b7280;
+    margin: 0 0 16px;
+    line-height: 1.5;
+}
+
+h1, h2 {
+    font-family: 'Recia', serif;
+    font-style: italic;
+    color: var(--td-dark-blue);
+}
+
+p { margin-bottom: 16px; }
+
+code {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+footer {
+    margin-top: 100px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+/* ─── Form card wrapper ─── */
+.form-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 8px;
+}
+
+/* ─── Field wrapper ─── */
+[data-field] {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+
+/* ─── Label ─── */
+[data-label] {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--td-dark-blue);
+}
+
+/* ─── Inputs / Textarea / Select — 1px border at ≥3:1 contrast (WCAG 1.4.11) ─── */
+/* Checkboxes and radios keep their native appearance */
+[data-input]:not([type=checkbox]):not([type=radio]) {
+    border: 1px solid #6b7280;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 1rem;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+    color: var(--td-dark-blue);
+    transition: border-color 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+[data-input]:not([type=checkbox]):not([type=radio]):hover {
+    border-color: var(--td-dark-blue);
+}
+
+/* Focus ring — 2px solid at ≥3:1 contrast (WCAG 2.4.7 / 2.4.13) */
+[data-input]:focus-visible {
+    outline: 2px solid var(--td-sunset);
+    outline-offset: 2px;
+}
+
+[data-input]:not([type=checkbox]):not([type=radio]):focus-visible {
+    border-color: var(--td-sunset);
+}
+
+/* ─── Checkbox / Radio ─── */
+[data-input][type=checkbox],
+[data-input][type=radio] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--td-sunset);
+    flex-shrink: 0;
+}
+
+/* Select chevron */
+select[data-input] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23171D26' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+
+/* ─── Hint text ─── */
+[data-hint] {
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+/* ─── Error text ─── */
+[data-error]:empty {
+    display: none;
+}
+
+[data-error] {
+    font-size: 0.8rem;
+    color: #ef4444;
+    line-height: 1.4;
+}
+
+/* ─── Invalid field state ─── */
+[data-field][data-invalid] [data-input] {
+    border-color: #ef4444;
+    background-color: #fef9f9;
+}
+
+[data-field][data-invalid] [data-label] {
+    color: #ef4444;
+}
+
+/* ─── Error summary ─── */
+[data-error-summary] {
+    border-left: 4px solid #ef4444;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    background: #fef2f2;
+    border-radius: 0 8px 8px 0;
+}
+
+[data-error-summary] p {
+    font-weight: 600;
+    color: #b91c1c;
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+}
+
+[data-error-summary] ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+[data-error-summary] li {
+    margin-bottom: 4px;
+    font-size: 0.875rem;
+}
+
+[data-error-summary] a {
+    color: #b91c1c;
+    text-decoration: underline;
+}
+
+[data-error-summary] a:hover {
+    color: #ef4444;
+}
+
+[data-error-summary]:focus-visible {
+    outline: 2px solid var(--td-sunset);
+    outline-offset: 2px;
+}
+
+/* ─── Submit button ─── */
+.submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 28px;
+    background: var(--td-dark-blue);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.submit-btn:hover {
+    background: #2d3748;
+}
+
+.submit-btn:active {
+    transform: scale(0.98);
+}
+
+.submit-btn:focus-visible {
+    outline: 2px solid var(--td-sunset);
+    outline-offset: 2px;
+}
+
+/* ─── Success message ─── */
+.success-msg {
+    display: none;
+    padding: 14px 18px;
+    background: #f0fdf4;
+    border-left: 4px solid #22c55e;
+    border-radius: 0 8px 8px 0;
+    color: #15803d;
+    font-weight: 600;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+.success-msg[aria-hidden="false"] {
+    display: block;
+}
+
+/* ─── API control buttons ─── */
+.api-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.api-controls button {
+    padding: 8px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--td-dark-blue);
+    font-family: monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.api-controls button:hover {
+    background: var(--td-dark-blue);
+    color: #ffffff;
+    border-color: var(--td-dark-blue);
+}
+
+.api-controls button:focus-visible {
+    outline: 2px solid var(--td-sunset);
+    outline-offset: 2px;
+}
+
+/* ─── Event log ─── */
+.event-log {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    max-height: 160px;
+    overflow-y: auto;
+    margin-top: 16px;
+    color: #374151;
+}
+
+.event-log p {
+    margin: 0;
+    line-height: 1.8;
+}
+
+.event-log .log-valid { color: #15803d; }
+.event-log .log-invalid { color: #b91c1c; }
+
+/* ─── faceless-input host ─── */
+faceless-input { display: block; }

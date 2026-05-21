@@ -2,8 +2,6 @@
 
 **Zero-dependency, framework-agnostic web components that give you behavior without imposing design.**
 
----
-
 ## The Problem
 
 Most UI component libraries bundle logic and visuals together. You get a carousel — but it comes with its own markup structure, class names, and CSS you have to fight against to match your design. Customization becomes a battle of overrides.
@@ -16,6 +14,18 @@ Faceless UI separates the two concerns completely:
 - **You** own everything visual: markup inside the component is your HTML, styled with your CSS, in your design system.
 
 There are no default styles to override. The component exposes data attributes (`data-active`, `data-visible`) and CSS custom properties as the styling interface — you decide what they mean visually.
+
+---
+
+## Component Status
+>
+> | Component | Status |
+> |---|---|
+> | `<faceless-carousel>` | ✅ Production-ready |
+> | `<faceless-accordion>` | 🧪 Experimental |
+> | `<faceless-form>` + `<faceless-input>` | 🧪 Experimental |
+>
+> Experimental components are functional and tested, but their API may change before a stable release.
 
 ---
 
@@ -71,7 +81,7 @@ The component handles everything else: touch drag with momentum, infinite loop c
 | Markup | Fixed structure | Your HTML, your classes |
 | Framework | Often React/Vue-specific | Any framework or none |
 | Dependencies | npm install | Single `<script>` tag |
-| SSR / SSG | Often requires workarounds | Works everywhere, no config — [verified by test](#ssr-testing) |
+| SSR / SSG | Often requires workarounds | Works everywhere, no config — verified by SSR test scripts |
 | Bundle size | Varies, often heavy | ~10 KB, zero deps |
 
 Faceless UI is the right choice when your product has a strong, bespoke design and you cannot afford the visual compromises that come with opinionated component libraries.
@@ -92,8 +102,9 @@ Faceless UI is the right choice when your product has a strong, bespoke design a
 
 | Component | Tag | Status |
 |---|---|---|
-| Carousel | `<faceless-carousel>` | Available — [docs](./carousel/docs.md) |
-| Accordion | `<faceless-accordion>` | Available — [docs](./accordion/docs.md) |
+| Carousel | `<faceless-carousel>` | ✅ Production-ready — [docs](./carousel/docs.md) |
+| Accordion | `<faceless-accordion>` | 🧪 Experimental — [docs](./accordion/docs.md) |
+| Form | `<faceless-form>` + `<faceless-input>` | 🧪 Experimental — [docs](./form/docs.md) |
 
 ---
 
@@ -129,21 +140,117 @@ Reference: [Chrome accessible carousel guide](https://developer.chrome.com/blog/
 
 ---
 
-## SSR Testing
+## Framework Integration
 
-Each component ships with an SSR test script that **imports the component in Node.js** (verifying the `isBrowser` guards) and **generates a showcase HTML file** server-side — genuine SSR output, not hand-written HTML.
+All components expose JavaScript property getters/setters, custom events, and `ElementInternals` — making them work in Angular, React, Vue, and Svelte without wrappers or adapters.
 
-```bash
-# Carousel
-node carousel/ssr-test.mjs
+---
 
-# Accordion
-node accordion/ssr-test.mjs
+### Required Setup Per Framework
+
+> This is the minimum configuration needed before the components will work correctly in each framework.
+
+#### React 19
+
+No setup required. React 19 supports custom elements and property bindings natively.
+
+```tsx
+// Properties set directly on the element
+<faceless-carousel items-per-view={3} loop show-dots />
 ```
 
-Each script:
-1. Imports `index.js` in Node.js — fails immediately if any browser API leaks through
-2. Generates `ssr-showcase.html` with all component demos as server-rendered HTML
-3. The generated file can be opened in a browser to verify hydration works correctly
+#### Vue 3
 
-The `ssr-showcase.html` files are **generated artifacts** — do not edit them by hand.
+Mark Faceless elements as custom in `vite.config.ts` — otherwise Vue treats them as unknown components:
+
+```ts
+// vite.config.ts
+vue({
+  template: {
+    compilerOptions: {
+      isCustomElement: (tag) => tag.startsWith('faceless-'),
+    },
+  },
+})
+```
+
+#### Angular
+
+Add `CUSTOM_ELEMENTS_SCHEMA` to every standalone component (or NgModule) that uses a Faceless element:
+
+```ts
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+
+@Component({
+  standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  // ...
+})
+```
+
+For `<faceless-input>` with Angular forms, add `ngDefaultControl` to opt into Angular's value accessor:
+
+```html
+<faceless-input ngDefaultControl [(ngModel)]="value" name="field"></faceless-input>
+```
+
+#### Svelte 5
+
+No setup required. Svelte works directly with the DOM.
+
+---
+
+### Events
+
+Every event fires twice — once with the canonical hyphenated name and once with a camelCase alias. React 19 JSX lowercases event names (`onCarouselChange` → `carouselchange`), so hyphenated names cannot be bound from JSX. All other frameworks support the canonical name directly.
+
+| Component | Canonical | React JSX alias | Detail payload |
+|---|---|---|---|
+| Carousel | `carousel-change` | `carouselchange` | `{ index: number, total: number }` |
+| Accordion | `accordion-toggle` | `accordiontoggle` | `{ index: number, item: HTMLElement, open: boolean }` |
+| Form | `form-submit` | `formsubmit` | `{ valid: boolean, errors: Record<string, string>, values: Record<string, string> }` |
+| Input | `input-change` | `inputchange` | `{ name: string, value: string }` |
+
+---
+
+### Per-Framework Snippets
+
+**React**
+```tsx
+<faceless-carousel
+  items-per-view={3}
+  loop
+  show-dots
+  onCarouselChange={(e) => console.log(e.detail.index)}
+/>
+```
+
+**Vue**
+```vue
+<faceless-carousel
+  :items-per-view="3"
+  :loop="true"
+  show-dots
+  @carousel-change="onSlideChange"
+/>
+```
+
+**Angular** — use `[attr.x]` for attribute bindings, `(event-name)` for events:
+```html
+<faceless-carousel
+  [attr.items-per-view]="itemsPerView"
+  [attr.loop]="loopEnabled ? '' : null"
+  show-dots
+  (carousel-change)="onSlideChange($event)"
+/>
+```
+
+**Svelte** — use `bind:this` to access the public API:
+```svelte
+<faceless-carousel
+  bind:this={carouselEl}
+  items-per-view={3}
+  loop
+  show-dots
+/>
+```

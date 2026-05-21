@@ -35,6 +35,45 @@ class FacelessForm extends BaseElement {
 
     this._onSubmit = this._onSubmit.bind(this);
     this._onSlotChange = this._onSlotChange.bind(this);
+
+    ['action', 'method', 'enctype'].forEach(p => this._upgradeProperty(p));
+  }
+
+  // -- Property getters/setters for framework compatibility --
+
+  get action() {
+    if (!isBrowser) return '';
+    return this.getAttribute('action') || '';
+  }
+  set action(val) {
+    if (!isBrowser) return;
+    val == null || val === '' ? this.removeAttribute('action') : this.setAttribute('action', val);
+  }
+
+  get method() {
+    if (!isBrowser) return '';
+    return this.getAttribute('method') || '';
+  }
+  set method(val) {
+    if (!isBrowser) return;
+    val == null || val === '' ? this.removeAttribute('method') : this.setAttribute('method', val);
+  }
+
+  get enctype() {
+    if (!isBrowser) return '';
+    return this.getAttribute('enctype') || '';
+  }
+  set enctype(val) {
+    if (!isBrowser) return;
+    val == null || val === '' ? this.removeAttribute('enctype') : this.setAttribute('enctype', val);
+  }
+
+  _upgradeProperty(prop) {
+    if (this.hasOwnProperty(prop)) {
+      const value = this[prop];
+      delete this[prop];
+      this[prop] = value;
+    }
   }
 
   static get observedAttributes() {
@@ -98,6 +137,14 @@ class FacelessForm extends BaseElement {
 
   _init() {
     if (!this._form) return;
+
+    // Adopt children that ended up outside <form> (frameworks like Angular
+    // add children after connectedCallback, so they become siblings of <form>)
+    Array.from(this.childNodes).forEach(child => {
+      if (child !== this._form) {
+        this._form.appendChild(child);
+      }
+    });
 
     this.state.fields = [];
 
@@ -177,18 +224,16 @@ class FacelessForm extends BaseElement {
 
     if (Object.keys(errors).length > 0) {
       this.setErrors(errors);
-      this.dispatchEvent(new CustomEvent('form-submit', {
-        bubbles: true,
-        composed: true,
-        detail: { valid: false, errors, values },
-      }));
+      const detail = { valid: false, errors, values };
+      const opts = { bubbles: true, composed: true, detail };
+      this.dispatchEvent(new CustomEvent('form-submit', opts));
+      this.dispatchEvent(new CustomEvent('formsubmit', opts));
     } else {
       this.clearErrors();
-      this.dispatchEvent(new CustomEvent('form-submit', {
-        bubbles: true,
-        composed: true,
-        detail: { valid: true, errors: {}, values },
-      }));
+      const detail = { valid: true, errors: {}, values };
+      const opts = { bubbles: true, composed: true, detail };
+      this.dispatchEvent(new CustomEvent('form-submit', opts));
+      this.dispatchEvent(new CustomEvent('formsubmit', opts));
     }
   }
 
@@ -342,6 +387,8 @@ if (isBrowser) customElements.define('faceless-form', FacelessForm);
 // [data-error] in light DOM — no shadow root needed.
 
 class FacelessInput extends BaseElement {
+  static formAssociated = true;
+
   static get observedAttributes() {
     return [
       'name', 'type', 'element', 'label', 'hint',
@@ -350,6 +397,104 @@ class FacelessInput extends BaseElement {
       'pattern', 'rows', 'disabled', 'value',
       'error-required', 'error-type', 'error-pattern', 'error-message',
     ];
+  }
+
+  constructor() {
+    super();
+    if (!isBrowser) return;
+
+    if (this.attachInternals) {
+      this._internals = this.attachInternals();
+    }
+
+    const props = [
+      'name', 'type', 'element', 'label', 'hint',
+      'required', 'placeholder', 'autocomplete',
+      'minLength', 'maxLength', 'min', 'max', 'step',
+      'pattern', 'rows', 'disabled', 'value',
+      'errorRequired', 'errorType', 'errorPattern', 'errorMessage',
+    ];
+    props.forEach(p => this._upgradeProperty(p));
+  }
+
+  // -- Property getters/setters for framework compatibility --
+
+  get name() { return this.getAttribute('name') || ''; }
+  set name(val) { val == null || val === '' ? this.removeAttribute('name') : this.setAttribute('name', val); }
+
+  get type() { return this.getAttribute('type') || 'text'; }
+  set type(val) { val == null || val === '' ? this.removeAttribute('type') : this.setAttribute('type', val); }
+
+  get element() { return this.getAttribute('element') || 'input'; }
+  set element(val) { val == null || val === '' ? this.removeAttribute('element') : this.setAttribute('element', val); }
+
+  get label() { return this.getAttribute('label') || ''; }
+  set label(val) { val == null || val === '' ? this.removeAttribute('label') : this.setAttribute('label', val); }
+
+  get hint() { return this.getAttribute('hint'); }
+  set hint(val) { val == null ? this.removeAttribute('hint') : this.setAttribute('hint', val); }
+
+  get required() { return this.hasAttribute('required'); }
+  set required(val) { val ? this.setAttribute('required', '') : this.removeAttribute('required'); }
+
+  get placeholder() { return this.getAttribute('placeholder') || ''; }
+  set placeholder(val) { val == null || val === '' ? this.removeAttribute('placeholder') : this.setAttribute('placeholder', val); }
+
+  get autocomplete() { return this.getAttribute('autocomplete') || ''; }
+  set autocomplete(val) { val == null || val === '' ? this.removeAttribute('autocomplete') : this.setAttribute('autocomplete', val); }
+
+  get minLength() { return parseInt(this.getAttribute('minlength')) || -1; }
+  set minLength(val) { val == null || val < 0 ? this.removeAttribute('minlength') : this.setAttribute('minlength', String(val)); }
+
+  get maxLength() { return parseInt(this.getAttribute('maxlength')) || -1; }
+  set maxLength(val) { val == null || val < 0 ? this.removeAttribute('maxlength') : this.setAttribute('maxlength', String(val)); }
+
+  get min() { return this.getAttribute('min') || ''; }
+  set min(val) { val == null || val === '' ? this.removeAttribute('min') : this.setAttribute('min', String(val)); }
+
+  get max() { return this.getAttribute('max') || ''; }
+  set max(val) { val == null || val === '' ? this.removeAttribute('max') : this.setAttribute('max', String(val)); }
+
+  get step() { return this.getAttribute('step') || ''; }
+  set step(val) { val == null || val === '' ? this.removeAttribute('step') : this.setAttribute('step', String(val)); }
+
+  get pattern() { return this.getAttribute('pattern') || ''; }
+  set pattern(val) { val == null || val === '' ? this.removeAttribute('pattern') : this.setAttribute('pattern', val); }
+
+  get rows() { return parseInt(this.getAttribute('rows')) || 0; }
+  set rows(val) { val == null || val <= 0 ? this.removeAttribute('rows') : this.setAttribute('rows', String(val)); }
+
+  get disabled() { return this.hasAttribute('disabled'); }
+  set disabled(val) { val ? this.setAttribute('disabled', '') : this.removeAttribute('disabled'); }
+
+  get value() {
+    const control = this.querySelector('[data-input]');
+    return control ? control.value : this.getAttribute('value') || '';
+  }
+  set value(val) {
+    this.setAttribute('value', val ?? '');
+    const control = this.querySelector('[data-input]');
+    if (control) control.value = val ?? '';
+  }
+
+  get errorRequired() { return this.getAttribute('error-required') || ''; }
+  set errorRequired(val) { val == null || val === '' ? this.removeAttribute('error-required') : this.setAttribute('error-required', val); }
+
+  get errorType() { return this.getAttribute('error-type') || ''; }
+  set errorType(val) { val == null || val === '' ? this.removeAttribute('error-type') : this.setAttribute('error-type', val); }
+
+  get errorPattern() { return this.getAttribute('error-pattern') || ''; }
+  set errorPattern(val) { val == null || val === '' ? this.removeAttribute('error-pattern') : this.setAttribute('error-pattern', val); }
+
+  get errorMessage() { return this.getAttribute('error-message') || ''; }
+  set errorMessage(val) { val == null || val === '' ? this.removeAttribute('error-message') : this.setAttribute('error-message', val); }
+
+  _upgradeProperty(prop) {
+    if (this.hasOwnProperty(prop)) {
+      const value = this[prop];
+      delete this[prop];
+      this[prop] = value;
+    }
   }
 
   connectedCallback() {
@@ -361,6 +506,7 @@ class FacelessInput extends BaseElement {
     // SSR path: internal elements already pre-rendered — only sync attributes
     if (this.querySelector('[data-input]')) {
       this._wireAttributes();
+      this._bindControlEvents();
       return;
     }
 
@@ -369,6 +515,51 @@ class FacelessInput extends BaseElement {
 
   disconnectedCallback() {
     if (!isBrowser) return;
+    this._unbindControlEvents();
+  }
+
+  _bindControlEvents() {
+    this._unbindControlEvents();
+    const control = this.querySelector('[data-input]');
+    if (!control) return;
+    this._onControlInput = () => {
+      this._syncToInternals();
+      const detail = { name: this.getAttribute('name'), value: control.value };
+      const opts = { bubbles: true, composed: true, detail };
+      this.dispatchEvent(new CustomEvent('input-change', opts));
+      this.dispatchEvent(new CustomEvent('inputchange', opts));
+    };
+    control.addEventListener('input', this._onControlInput);
+    // Initial sync
+    this._syncToInternals();
+  }
+
+  _unbindControlEvents() {
+    if (!this._onControlInput) return;
+    const control = this.querySelector('[data-input]');
+    if (control) control.removeEventListener('input', this._onControlInput);
+    this._onControlInput = null;
+  }
+
+  _syncToInternals() {
+    if (!this._internals) return;
+    const control = this.querySelector('[data-input]');
+    if (!control) return;
+    this._internals.setFormValue(control.value);
+    if (control.validity) {
+      this._internals.setValidity(control.validity, control.validationMessage, control);
+    }
+  }
+
+  formResetCallback() {
+    const control = this.querySelector('[data-input]');
+    if (control) control.value = '';
+    this._syncToInternals();
+  }
+
+  formDisabledCallback(disabled) {
+    const control = this.querySelector('[data-input]');
+    if (control) control.disabled = disabled;
   }
 
   attributeChangedCallback(name, _oldVal, newVal) {
@@ -437,6 +628,7 @@ class FacelessInput extends BaseElement {
     this.append(...toAppend);
 
     this._wireAttributes();
+    this._bindControlEvents();
   }
 
   _wireAttributes() {

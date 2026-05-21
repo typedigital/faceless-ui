@@ -44,6 +44,25 @@ class FacelessAccordion extends BaseElement {
     this._onClick = this._onClick.bind(this);
     this._onKeyDown = this._onKeyDown.bind(this);
     this._onTransitionEnd = this._onTransitionEnd.bind(this);
+
+    this._upgradeProperty('multiple');
+  }
+
+  // -- Property getters/setters for framework compatibility --
+
+  get multiple() {
+    return this.hasAttribute('multiple');
+  }
+  set multiple(val) {
+    val ? this.setAttribute('multiple', '') : this.removeAttribute('multiple');
+  }
+
+  _upgradeProperty(prop) {
+    if (this.hasOwnProperty(prop)) {
+      const value = this[prop];
+      delete this[prop];
+      this[prop] = value;
+    }
   }
 
   connectedCallback() {
@@ -228,11 +247,10 @@ class FacelessAccordion extends BaseElement {
       this._openPanel(item);
     }
 
-    this.dispatchEvent(new CustomEvent('accordion-toggle', {
-      bubbles: true,
-      composed: true,
-      detail: { index: item.index, item: item.el, open: item.open },
-    }));
+    const detail = { index: item.index, item: item.el, open: item.open };
+    const opts = { bubbles: true, composed: true, detail };
+    this.dispatchEvent(new CustomEvent('accordion-toggle', opts));
+    this.dispatchEvent(new CustomEvent('accordiontoggle', opts));
   }
 
   _openPanel(item) {

@@ -193,7 +193,10 @@ class FacelessCarousel extends BaseElement {
 
   attributeChangedCallback() {
     if (!isBrowser) return;
-    if (this.isConnected) this._measure();
+    if (this.isConnected) {
+      this._measure();
+      this._toggleDots();
+    }
   }
 
   connectedCallback() {
@@ -707,7 +710,7 @@ class FacelessCarousel extends BaseElement {
 
   _renderDots() {
     this.dotsContainer.innerHTML = '';
-    if (!this.hasAttribute('show-dots')) {
+    if (!this.hasAttribute('show-dots') || this.getAttribute('show-dots') === 'false') {
       this.dotsContainer.removeAttribute('role');
       return;
     }
@@ -740,7 +743,14 @@ class FacelessCarousel extends BaseElement {
   }
 
   _stopAutoplay() { if (this.state.autoplayTimer) { clearInterval(this.state.autoplayTimer); this.state.autoplayTimer = null; } }
-  _toggleDots() { if (this.dotsContainer) this.dotsContainer.hidden = !this.hasAttribute('show-dots'); }
+  _toggleDots() {
+    if (!this.dotsContainer) return;
+    const active = this.hasAttribute('show-dots') && this.getAttribute('show-dots') !== 'false';
+    this.dotsContainer.hidden = !active;
+    if (active && this.dotsContainer.children.length === 0) {
+      this._renderDots();
+    }
+  } 
   _onGroupFocusIn() {
     cancelAnimationFrame(this._focusOutRaf);
     this._setPaused(true);

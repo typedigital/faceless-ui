@@ -434,8 +434,8 @@ class FacelessInput extends BaseElement {
   get hint() { return this.getAttribute('hint'); }
   set hint(val) { val == null ? this.removeAttribute('hint') : this.setAttribute('hint', val); }
 
-  get required() { return this.hasAttribute('required'); }
-  set required(val) { val ? this.setAttribute('required', '') : this.removeAttribute('required'); }
+  get required() { return this.hasAttribute('required') && this.getAttribute('required') !== 'false'; }
+  set required(val) { val && val !== 'false' ? this.setAttribute('required', '') : this.removeAttribute('required'); }
 
   get placeholder() { return this.getAttribute('placeholder') || ''; }
   set placeholder(val) { val == null || val === '' ? this.removeAttribute('placeholder') : this.setAttribute('placeholder', val); }
@@ -464,8 +464,8 @@ class FacelessInput extends BaseElement {
   get rows() { return parseInt(this.getAttribute('rows')) || 0; }
   set rows(val) { val == null || val <= 0 ? this.removeAttribute('rows') : this.setAttribute('rows', String(val)); }
 
-  get disabled() { return this.hasAttribute('disabled'); }
-  set disabled(val) { val ? this.setAttribute('disabled', '') : this.removeAttribute('disabled'); }
+  get disabled() { return this.hasAttribute('disabled') && this.getAttribute('disabled') !== 'false'; }
+  set disabled(val) { val && val !== 'false' ? this.setAttribute('disabled', '') : this.removeAttribute('disabled'); }
 
   get value() {
     const control = this.querySelector('[data-input]');
@@ -641,8 +641,17 @@ class FacelessInput extends BaseElement {
       'minlength', 'maxlength', 'min', 'max', 'step',
       'disabled', 'value', 'rows',
     ];
+    const booleanAttrs = new Set(['required', 'disabled']);
     fwd.forEach(attr => {
-      if (this.hasAttribute(attr)) {
+      if (booleanAttrs.has(attr)) {
+        // Boolean attributes: React may set "false" as a string on custom elements
+        const val = this.getAttribute(attr);
+        if (val !== null && val !== 'false') {
+          control.setAttribute(attr, '');
+        } else {
+          control.removeAttribute(attr);
+        }
+      } else if (this.hasAttribute(attr)) {
         control.setAttribute(attr, this.getAttribute(attr));
       } else {
         control.removeAttribute(attr);

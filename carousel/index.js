@@ -132,7 +132,7 @@ if (template) template.innerHTML = `
   }
 </style>
 <button class="play-pause-btn" part="play-pause" aria-label="Pause auto-rotation">\u23F8</button>
-k<div class="dots-container" part="dots-container"></div>
+<div class="dots-container" part="dots-container"></div>
 <div class="viewport" part="viewport">
   <div class="track" part="track" aria-live="off" aria-atomic="false">
     <slot></slot>

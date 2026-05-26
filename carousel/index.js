@@ -185,122 +185,18 @@ class FacelessCarousel extends BaseElement {
     this._toggleAutoplay = this._toggleAutoplay.bind(this);
     this._onGroupFocusIn = this._onGroupFocusIn.bind(this);
     this._onGroupFocusOut = this._onGroupFocusOut.bind(this);
-
-    // Upgrade properties that may have been set before registration
-    const props = [
-      'itemsPerView', 'gap', 'loop', 'peek', 'peekType', 'showDots',
-      'autoplay', 'interval', 'mousewheel', 'hidePlayPause', 'noSnap', 'speed'
-    ];
-    props.forEach(p => this._upgradeProperty(p));
-  }
-
-  // -- Property getters/setters for framework compatibility --
-
-  get itemsPerView() {
-    if (!isBrowser) return 1;
-    return parseFloat(this.getAttribute('items-per-view')) || 1;
-  }
-  set itemsPerView(val) {
-    if (!isBrowser) return;
-    val == null ? this.removeAttribute('items-per-view') : this.setAttribute('items-per-view', String(val));
-  }
-
-  get gap() {
-    if (!isBrowser) return 0;
-    return parseFloat(this.getAttribute('gap')) || 0;
-  }
-  set gap(val) {
-    if (!isBrowser) return;
-    val == null ? this.removeAttribute('gap') : this.setAttribute('gap', String(val));
-  }
-
-  get loop() { return this.hasAttribute('loop'); }
-  set loop(val) { val ? this.setAttribute('loop', '') : this.removeAttribute('loop'); }
-
-  get peek() {
-    if (!isBrowser) return '';
-    return this.getAttribute('peek') || '';
-  }
-  set peek(val) {
-    if (!isBrowser) return;
-    val == null || val === '' ? this.removeAttribute('peek') : this.setAttribute('peek', val);
-  }
-
-  get peekType() {
-    if (!isBrowser) return 'hard';
-    return this.getAttribute('peek-type') || 'hard';
-  }
-  set peekType(val) {
-    if (!isBrowser) return;
-    val == null || val === '' ? this.removeAttribute('peek-type') : this.setAttribute('peek-type', val);
-  }
-
-  get showDots() { return this.hasAttribute('show-dots'); }
-  set showDots(val) { val ? this.setAttribute('show-dots', '') : this.removeAttribute('show-dots'); }
-
-  get autoplay() { return this.hasAttribute('autoplay'); }
-  set autoplay(val) { val ? this.setAttribute('autoplay', '') : this.removeAttribute('autoplay'); }
-
-  get interval() {
-    if (!isBrowser) return 3000;
-    return parseInt(this.getAttribute('interval')) || 3000;
-  }
-  set interval(val) {
-    if (!isBrowser) return;
-    val == null ? this.removeAttribute('interval') : this.setAttribute('interval', String(val));
-  }
-
-  get mousewheel() { return this.hasAttribute('mousewheel'); }
-  set mousewheel(val) { val ? this.setAttribute('mousewheel', '') : this.removeAttribute('mousewheel'); }
-
-  get hidePlayPause() { return this.hasAttribute('hide-play-pause'); }
-  set hidePlayPause(val) { val ? this.setAttribute('hide-play-pause', '') : this.removeAttribute('hide-play-pause'); }
-
-  get noSnap() { return this.hasAttribute('no-snap'); }
-  set noSnap(val) { val ? this.setAttribute('no-snap', '') : this.removeAttribute('no-snap'); }
-
-  get speed() {
-    if (!isBrowser) return 0;
-    return parseFloat(this.getAttribute('speed')) || 0;
-  }
-  set speed(val) {
-    if (!isBrowser) return;
-    val == null ? this.removeAttribute('speed') : this.setAttribute('speed', String(val));
-  }
-
-  // Read-only state properties
-  get currentIndex() { return this.state ? this.state.currentIndex : 0; }
-  get realCount() { return this.state ? this.state.realCount : 0; }
-
-  _upgradeProperty(prop) {
-    if (this.hasOwnProperty(prop)) {
-      const value = this[prop];
-      delete this[prop];
-      this[prop] = value;
-    }
   }
 
   static get observedAttributes() {
-    return ['items-per-view', 'gap', 'loop', 'peek', 'peek-type', 'show-dots', 'autoplay', 'interval', 'mousewheel', 'hide-play-pause', 'no-snap'];
+    return ['items-per-view', 'gap', 'loop', 'peek', 'peek-type', 'show-dots', 'autoplay', 'interval', 'mousewheel', 'hide-play-pause', 'no-snap', 'drag-threshold'];
   }
 
-  attributeChangedCallback(name, oldVal, newVal) {
+  attributeChangedCallback() {
     if (!isBrowser) return;
-    if (!this.isConnected) return;
-
-    // Structural attributes affect clone count — require full re-init
-    if (name === 'loop' || name === 'items-per-view') {
-      this._init();
-      return;
+    if (this.isConnected) {
+      this._measure();
+      this._toggleDots();
     }
-
-    // Autoplay toggle
-    if (name === 'autoplay') {
-      if (newVal !== null) this._startAutoplay();
-      else this._stopAutoplay();
-    }
-
-    this._measure();
   }
 
   connectedCallback() {
@@ -751,7 +647,6 @@ class FacelessCarousel extends BaseElement {
   goTo(index, animate = true) {
     const { realCount, cloneCount, stride } = this.state;
     if (!this.hasAttribute('loop')) index = Math.max(0, Math.min(index, realCount - 1));
-    const prevRealIdx = ((this.state.currentIndex % realCount) + realCount) % realCount;
     this.state.currentIndex = index;
     const target = -((cloneCount + index) * stride);
     if (animate) this.state.targetTranslate = target;
@@ -759,13 +654,6 @@ class FacelessCarousel extends BaseElement {
     const realIdx = ((index % realCount) + realCount) % realCount;
     if (this.srAnnouncer) this.srAnnouncer.textContent = `Slide ${realIdx + 1} of ${realCount}`;
     this._syncActiveStates();
-
-    if (realIdx !== prevRealIdx) {
-      const detail = { index: realIdx, total: realCount };
-      const opts = { bubbles: true, composed: true, detail };
-      this.dispatchEvent(new CustomEvent('carousel-change', opts));
-      this.dispatchEvent(new CustomEvent('carouselchange', opts));
-    }
   }
 
   next() { this.goTo(this.state.currentIndex + 1); }
@@ -791,9 +679,19 @@ class FacelessCarousel extends BaseElement {
     this.state.isDragging = false;
     window.removeEventListener('mousemove', this._onDragMove);
     window.removeEventListener('touchmove', this._onDragMove);
-    const { currentTranslate, stride, cloneCount } = this.state;
+    const { currentTranslate, prevTranslate, stride, cloneCount } = this.state;
+    const threshold = parseFloat(this.getAttribute('drag-threshold')) || 0.2;
+    const dragDelta = currentTranslate - prevTranslate;
     const relativePos = currentTranslate - (-(cloneCount * stride));
-    this.goTo(Math.round(-(relativePos / stride)));
+    const exactIndex = -(relativePos / stride);
+    const fraction = exactIndex - Math.floor(exactIndex);
+    let targetIndex;
+    if (dragDelta < 0) {
+      targetIndex = fraction >= threshold ? Math.ceil(exactIndex) : Math.floor(exactIndex);
+    } else {
+      targetIndex = (1 - fraction) >= threshold ? Math.floor(exactIndex) : Math.ceil(exactIndex);
+    }
+    this.goTo(targetIndex);
     if (this.hasAttribute('autoplay') && !this.state.isUserPaused) this._startAutoplay();
   }
 
@@ -812,7 +710,7 @@ class FacelessCarousel extends BaseElement {
 
   _renderDots() {
     this.dotsContainer.innerHTML = '';
-    if (!this.hasAttribute('show-dots')) return;
+    if (!this.hasAttribute('show-dots') || this.getAttribute('show-dots') === 'false') return;
     for (let i = 0; i < this.state.realCount; i++) {
       const dot = document.createElement('button');
       dot.classList.add('dot');
@@ -840,7 +738,14 @@ class FacelessCarousel extends BaseElement {
   }
 
   _stopAutoplay() { if (this.state.autoplayTimer) { clearInterval(this.state.autoplayTimer); this.state.autoplayTimer = null; } }
-  _toggleDots() { if (this.dotsContainer) this.dotsContainer.hidden = !this.hasAttribute('show-dots'); }
+  _toggleDots() {
+    if (!this.dotsContainer) return;
+    const active = this.hasAttribute('show-dots') && this.getAttribute('show-dots') !== 'false';
+    this.dotsContainer.hidden = !active;
+    if (active && this.dotsContainer.children.length === 0) {
+      this._renderDots();
+    }
+  }
   _onGroupFocusIn() {
     cancelAnimationFrame(this._focusOutRaf);
     this._setPaused(true);
@@ -873,6 +778,7 @@ class FacelessCarousel extends BaseElement {
     if (this.state.isUserPaused) {
       this._stopAutoplay();
     } else if (this.hasAttribute('autoplay')) {
+      this.state.isPaused = false;
       this._startAutoplay();
     }
     this._updatePlayPauseButton();

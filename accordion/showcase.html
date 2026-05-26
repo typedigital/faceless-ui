@@ -202,8 +202,106 @@
         </div>
     </faceless-accordion>
 
+
+    <h2>7. Autoplay</h2>
+    <p>With the <code>autoplay</code> attribute, items cycle automatically. Hover or focus pauses the rotation. Use the ⏸/▶ button to toggle manually.</p>
+    <faceless-accordion autoplay interval="3000">
+        <div>
+            <h3 data-trigger>Slide 1 — Introduction</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Autoplay opens each panel in sequence. The timer resets on manual interaction.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Slide 2 — Features</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Pauses on hover and focus. Respects <code>prefers-reduced-motion</code>.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Slide 3 — Accessibility</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    The play/pause button is always keyboard-reachable. <code>aria-live</code> toggles between <code>off</code> (playing) and <code>polite</code> (paused).
+                </div>
+            </div>
+        </div>
+        <div data-disabled>
+            <h3 data-trigger>Slide 4 — Skipped (disabled)</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Disabled items are skipped during auto-rotation.
+                </div>
+            </div>
+        </div>
+    </faceless-accordion>
+
+
+    <h2>8. Autoplay with Progress Bar</h2>
+    <p>The CSS variables <code>--accordion-autoplay-interval</code> and <code>--accordion-autoplay-state</code> enable a pure-CSS progress indicator — no JavaScript needed.</p>
+    <faceless-accordion class="autoplay-progress" autoplay interval="4000">
+        <div>
+            <h3 data-trigger>Step 1 — Plan</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Watch the progress bar on the active trigger. It syncs with the autoplay interval automatically.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Step 2 — Build</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    The bar resets when the next item opens. Hover to pause — the bar pauses too.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>Step 3 — Ship</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    All driven by <code>animation-play-state: var(--accordion-autoplay-state)</code>.
+                </div>
+            </div>
+        </div>
+    </faceless-accordion>
+
+
+    <h2>9. Hidden Play/Pause</h2>
+    <p>The <code>hide-play-pause</code> attribute visually hides the button while keeping it accessible to screen readers.</p>
+    <faceless-accordion autoplay interval="3500" hide-play-pause>
+        <div>
+            <h3 data-trigger>News Item 1</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    The play/pause button is still in the DOM and reachable via Tab, but visually hidden.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>News Item 2</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Useful when autoplay is decorative and the button would clutter the design.
+                </div>
+            </div>
+        </div>
+        <div>
+            <h3 data-trigger>News Item 3</h3>
+            <div data-panel>
+                <div class="panel-content">
+                    Screen reader users can still find and activate it.
+                </div>
+            </div>
+        </div>
+    </faceless-accordion>
+
     <footer>
-        Faceless-accordion Component v1.0 — Zero dependencies.
+        Faceless-accordion Component — Zero dependencies.
     </footer>
 
 </body>

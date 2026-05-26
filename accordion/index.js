@@ -26,8 +26,45 @@ if (template) template.innerHTML = `
   @media (prefers-reduced-motion: reduce) {
     :host { --accordion-duration: 0ms; }
   }
+  .play-pause-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 1rem;
+  }
+  :host([autoplay]) .play-pause-btn {
+    display: inline-flex;
+  }
+  :host([hide-play-pause]) .play-pause-btn {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .sr-announcer {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
 </style>
+<button class="play-pause-btn" part="play-pause" aria-label="Pause auto-rotation">⏸</button>
 <slot></slot>
+<div class="sr-announcer" aria-live="off" aria-atomic="true"></div>
 `;
 
 const BaseElement = isBrowser ? HTMLElement : class {};
@@ -39,29 +76,42 @@ class FacelessAccordion extends BaseElement {
     this.attachShadow({ mode: 'open' });
     this.shadowRoot.appendChild(template.content.cloneNode(true));
 
-    this.state = { items: [], uid: instanceCount++ };
+    this.playPauseBtn = this.shadowRoot.querySelector('.play-pause-btn');
+    this.srAnnouncer = this.shadowRoot.querySelector('.sr-announcer');
+
+    this.state = {
+      items: [],
+      uid: instanceCount++,
+      autoplayTimer: null,
+      isPaused: false,
+      isUserPaused: false,
+    };
 
     this._onClick = this._onClick.bind(this);
     this._onKeyDown = this._onKeyDown.bind(this);
     this._onTransitionEnd = this._onTransitionEnd.bind(this);
-
-    this._upgradeProperty('multiple');
+    this._toggleAutoplay = this._toggleAutoplay.bind(this);
+    this._onGroupFocusIn = this._onGroupFocusIn.bind(this);
+    this._onGroupFocusOut = this._onGroupFocusOut.bind(this);
   }
 
-  // -- Property getters/setters for framework compatibility --
-
-  get multiple() {
-    return this.hasAttribute('multiple');
-  }
-  set multiple(val) {
-    val ? this.setAttribute('multiple', '') : this.removeAttribute('multiple');
+  static get observedAttributes() {
+    return ['autoplay', 'interval'];
   }
 
-  _upgradeProperty(prop) {
-    if (this.hasOwnProperty(prop)) {
-      const value = this[prop];
-      delete this[prop];
-      this[prop] = value;
+  attributeChangedCallback(name) {
+    if (!isBrowser || !this.isConnected) return;
+    if (name === 'autoplay') {
+      if (this.hasAttribute('autoplay')) {
+        this._startAutoplay();
+      } else {
+        this._stopAutoplay();
+        this._updatePlayPauseButton();
+      }
+      this._updateAriaLive();
+    }
+    if (name === 'interval' && this.hasAttribute('autoplay') && !this.state.isUserPaused) {
+      this._startAutoplay();
     }
   }
 
@@ -71,6 +121,11 @@ class FacelessAccordion extends BaseElement {
     this.addEventListener('click', this._onClick);
     this.addEventListener('keydown', this._onKeyDown);
     this.addEventListener('transitionend', this._onTransitionEnd);
+    this.playPauseBtn.addEventListener('click', this._toggleAutoplay);
+    this.addEventListener('mouseenter', () => this._setPaused(true));
+    this.addEventListener('mouseleave', () => this._setPaused(false));
+    this.addEventListener('focusin', this._onGroupFocusIn);
+    this.addEventListener('focusout', this._onGroupFocusOut);
   }
 
   disconnectedCallback() {
@@ -78,9 +133,14 @@ class FacelessAccordion extends BaseElement {
     this.removeEventListener('click', this._onClick);
     this.removeEventListener('keydown', this._onKeyDown);
     this.removeEventListener('transitionend', this._onTransitionEnd);
+    this._stopAutoplay();
+    cancelAnimationFrame(this._focusOutRaf);
   }
 
   _init() {
+    // Capture focus context before clearing state.
+    // slotchange fires on framework re-renders; without this the focused trigger loses
+    // focus, breaking keyboard navigation mid-interaction.
     const focusedEl = document.activeElement; // eslint-disable-line no-undef
     const focusedIndex = this.state.items.findIndex(
       (i) => i.trigger === focusedEl || i.trigger.contains(focusedEl),
@@ -155,6 +215,20 @@ class FacelessAccordion extends BaseElement {
       if (refocusItem) {
         refocusItem.trigger.focus();
       }
+    }
+
+    if (this.hasAttribute('autoplay')) {
+      const hasOpenItem = this.state.items.some(i => i.open);
+      if (!hasOpenItem) {
+        const firstEnabled = this._getTriggerItems()[0];
+        if (firstEnabled) {
+          this._setOpenAttrs(firstEnabled, true);
+          firstEnabled.panel.style.height = 'auto';
+          firstEnabled.panel.style.overflow = 'visible';
+        }
+      }
+      this._startAutoplay();
+      this._updateAriaLive();
     }
   }
 
@@ -235,10 +309,13 @@ class FacelessAccordion extends BaseElement {
     const item = this.state.items.find(i => i.index === index);
     if (!item || item.disabled) return;
 
+    if (this.hasAttribute('autoplay') && !this.state.isUserPaused && !this.state.isPaused) {
+      this._startAutoplay();
+    }
+
     if (item.open) {
       this._closePanel(item);
     } else {
-      // In single mode, close all others first
       if (!this.hasAttribute('multiple')) {
         this.state.items.forEach(other => {
           if (other !== item && other.open) this._closePanel(other);
@@ -247,10 +324,11 @@ class FacelessAccordion extends BaseElement {
       this._openPanel(item);
     }
 
-    const detail = { index: item.index, item: item.el, open: item.open };
-    const opts = { bubbles: true, composed: true, detail };
-    this.dispatchEvent(new CustomEvent('accordion-toggle', opts));
-    this.dispatchEvent(new CustomEvent('accordiontoggle', opts));
+    this.dispatchEvent(new CustomEvent('accordion-toggle', {
+      bubbles: true,
+      composed: true,
+      detail: { index: item.index, item: item.el, open: item.open },
+    }));
   }
 
   _openPanel(item) {
@@ -258,15 +336,12 @@ class FacelessAccordion extends BaseElement {
     this._setOpenAttrs(item, true);
     panel.style.overflow = 'hidden';
     panel.style.height = `${panel.scrollHeight}px`;
-    // Transition to scrollHeight, then transitionend sets height: auto
   }
 
   _closePanel(item) {
     const { panel } = item;
-    // Snapshot current height, then animate to 0
     panel.style.overflow = 'hidden';
     panel.style.height = `${panel.scrollHeight}px`;
-    // Force reflow so the browser registers the starting height
     panel.offsetHeight; // eslint-disable-line no-unused-expressions
     requestAnimationFrame(() => {
       panel.style.height = '0px';
@@ -287,6 +362,101 @@ class FacelessAccordion extends BaseElement {
       panel.style.height = 'auto';
       panel.style.overflow = 'visible';
     }
+  }
+
+  _startAutoplay() {
+    this._stopAutoplay();
+    if (this.state.isPaused || this.state.isUserPaused) return;
+
+    if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return; // eslint-disable-line no-undef
+
+    const interval = parseInt(this.getAttribute('interval')) || 3000;
+    this.style.setProperty('--accordion-autoplay-interval', `${interval}ms`);
+    this.state.autoplayTimer = setInterval(() => {
+      const enabledItems = this._getTriggerItems();
+      if (enabledItems.length <= 1) return;
+
+      const currentOpen = enabledItems.find(i => i.open);
+      const currentOpenIndex = currentOpen ? enabledItems.indexOf(currentOpen) : -1;
+      const nextIndex = (currentOpenIndex + 1) % enabledItems.length;
+      const nextItem = enabledItems[nextIndex];
+
+      if (nextItem.open) return;
+
+      this.state.items.forEach(i => {
+        if (i.open) this._closePanel(i);
+      });
+      this._openPanel(nextItem);
+
+      this.dispatchEvent(new CustomEvent('accordion-toggle', {
+        bubbles: true,
+        composed: true,
+        detail: { index: nextItem.index, item: nextItem.el, open: true, autoplay: true, interval },
+      }));
+
+      this.srAnnouncer.textContent = `Item ${nextItem.index + 1} of ${enabledItems.length}`;
+    }, interval);
+    this.style.setProperty('--accordion-autoplay-state', 'running');
+  }
+
+  _stopAutoplay() {
+    if (this.state.autoplayTimer) {
+      clearInterval(this.state.autoplayTimer);
+      this.state.autoplayTimer = null;
+    }
+    this.style.setProperty('--accordion-autoplay-state', 'paused');
+  }
+
+  _setPaused(paused) {
+    this.state.isPaused = paused;
+    if (paused) {
+      this._stopAutoplay();
+    } else if (this.hasAttribute('autoplay') && !this.state.isUserPaused) {
+      this._startAutoplay();
+    }
+    this._updateAriaLive();
+  }
+
+  _toggleAutoplay() {
+    this.state.isUserPaused = !this.state.isUserPaused;
+    if (this.state.isUserPaused) {
+      this._stopAutoplay();
+    } else if (this.hasAttribute('autoplay')) {
+      this.state.isPaused = false;
+      this._startAutoplay();
+    }
+    this._updatePlayPauseButton();
+    this._updateAriaLive();
+  }
+
+  _updatePlayPauseButton() {
+    if (!this.playPauseBtn) return;
+    const paused = this.state.isUserPaused;
+    this.playPauseBtn.textContent = paused ? '\u25B6' : '\u23F8';
+    this.playPauseBtn.setAttribute('aria-label', paused ? 'Start auto-rotation' : 'Pause auto-rotation');
+  }
+
+  _updateAriaLive() {
+    if (!this.srAnnouncer) return;
+    const isAutoRotating = this.hasAttribute('autoplay')
+      && !this.state.isPaused
+      && !this.state.isUserPaused;
+    this.srAnnouncer.setAttribute('aria-live', isAutoRotating ? 'off' : 'polite');
+  }
+
+  _onGroupFocusIn() {
+    cancelAnimationFrame(this._focusOutRaf);
+    this._setPaused(true);
+  }
+
+  _onGroupFocusOut() {
+    cancelAnimationFrame(this._focusOutRaf);
+    this._focusOutRaf = requestAnimationFrame(() => {
+      const active = document.activeElement; // eslint-disable-line no-undef
+      if (!this.contains(active)) {
+        this._setPaused(false);
+      }
+    });
   }
 
   // Public API

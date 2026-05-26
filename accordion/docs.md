@@ -8,11 +8,14 @@ It follows the **Faceless Component** pattern: decoupling state management and b
 
 ## 1. Core Technical Specifications
 
-The component uses a single HTML attribute for configuration. Boolean attributes are enabled by presence alone.
+The component uses HTML attributes for configuration. Boolean attributes are enabled by presence alone.
 
-| Attribute  | Description                           | Default |
-|------------|---------------------------------------|---------|
-| `multiple` | Allow multiple panels open at once    | `false` |
+| Attribute         | Description                                        | Default |
+|-------------------|----------------------------------------------------|---------|
+| `multiple`        | Allow multiple panels open at once                 | `false` |
+| `autoplay`        | Cycle through items automatically                  | `false` |
+| `interval`        | Time between auto-rotations (ms)                   | `3000`  |
+| `hide-play-pause` | Visually hide the play/pause button (still in DOM for screen readers) | `false` |
 
 ---
 
@@ -87,6 +90,8 @@ Setting `height: auto` after opening allows dynamic content to resize naturally 
 | `--accordion-easing`             | Transition easing           | `ease`                   |
 | `--accordion-focus-ring`         | Focus ring for role="button" triggers | `2px solid currentColor` |
 | `--accordion-focus-ring-offset`  | Focus ring offset           | `2px`                    |
+| `--accordion-autoplay-interval`  | Set by the component on the host element when autoplay starts. Reflects the current `interval` attribute value. Use this to sync external CSS progress animations. | `3000ms` |
+| `--accordion-autoplay-state`     | Set by the component on the host element. `running` when autoplay is active, `paused` when stopped (hover, focus, user pause, or no autoplay). Use with `animation-play-state`. | `paused` |
 
 ```css
 faceless-accordion {
@@ -110,6 +115,78 @@ Follows the WAI-ARIA Accordion Pattern:
 | End          | Move focus to last trigger                 |
 
 Disabled items are skipped during arrow key navigation.
+
+---
+
+## 5a. Autoplay
+
+When the `autoplay` attribute is present, the accordion cycles through items automatically. A play/pause button is rendered in the Shadow DOM.
+
+```html
+<faceless-accordion autoplay interval="2000">
+  <!-- items -->
+</faceless-accordion>
+```
+
+### Behaviour
+
+- The component opens the next enabled item and closes the previous one on each cycle (single-mode is enforced during autoplay regardless of the `multiple` attribute).
+- Manual clicks by the user still respect the `multiple` attribute.
+- After a manual toggle, the autoplay timer resets so the user gets the full interval before the next auto-rotation.
+- Disabled items are skipped.
+- If only one enabled item exists, the timer runs but performs no action.
+
+### Pause Conditions
+
+Autoplay pauses automatically when:
+- The user hovers over the accordion (`mouseenter` / `mouseleave`)
+- Any element inside the accordion receives focus (`focusin` / `focusout`)
+- The user clicks the play/pause button (persists until clicked again)
+- `prefers-reduced-motion: reduce` is active — autoplay does **not** start automatically (WCAG 2.2.2). The button remains visible so the user can start manually.
+
+### Play/Pause Button
+
+- Rendered inside the Shadow DOM with `part="play-pause"` for external styling.
+- Shows ⏸ (pause) when playing, ▶ (play) when paused.
+- `aria-label` updates to reflect the current action ("Pause auto-rotation" / "Start auto-rotation").
+- Use `hide-play-pause` to visually hide the button while keeping it accessible to screen readers.
+
+### Autoplay Timing Communication
+
+When autoplay is active, the component sets two CSS custom properties on the host element:
+
+- `--accordion-autoplay-interval` — the interval in ms (e.g. `3000ms`)
+- `--accordion-autoplay-state` — `running` or `paused`
+
+These inherit to all light-DOM children, enabling pure-CSS progress indicators without JavaScript:
+
+```css
+[data-trigger][data-open]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: red;
+  transform-origin: left;
+  animation: progress var(--accordion-autoplay-interval, 3000ms) linear forwards;
+  animation-play-state: var(--accordion-autoplay-state, paused);
+}
+
+@keyframes progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+```
+
+The `accordion-toggle` event detail also includes `autoplay: true` and `interval` (number, in ms) when fired during auto-rotation.
+
+### Screen Reader Announcer
+
+A visually hidden `aria-live` region announces item changes:
+- `aria-live="off"` during auto-rotation (prevents excessive announcements)
+- `aria-live="polite"` when paused (allows manual interactions to be announced)
 
 ---
 
@@ -147,6 +224,14 @@ Full WAI-ARIA Accordion Pattern (Enter/Space, Arrow keys, Home, End). Disabled i
 
 ### Motion
 The `--accordion-duration` token is automatically set to `0ms` when `prefers-reduced-motion: reduce` is active (WCAG 2.2.2). This disables the height animation without affecting other transitions on consuming components.
+
+### Autoplay & Auto-Rotation
+When `autoplay` is enabled, the component follows WCAG 2.2.2 (Pause, Stop, Hide):
+- **prefers-reduced-motion**: Autoplay does not start automatically. The play/pause button remains visible for manual activation.
+- **Play/Pause button**: Always reachable via keyboard. `aria-label` reflects the current state.
+- **Focus pause**: Any focus inside the accordion pauses auto-rotation immediately.
+- **Hover pause**: Mouse hover pauses auto-rotation.
+- **`aria-live`**: Set to `"off"` during auto-rotation to prevent repetitive announcements. Switches to `"polite"` when paused so manual interactions are announced.
 
 ### Focus Ring — Non-Button Triggers
 When a non-`<button>` element is used as a trigger (e.g. a `<div>` or `<h3>`), the component adds `role="button"` and `tabindex="0"`. Because browsers only apply their native focus ring to interactive elements, the component injects a single global stylesheet on first registration to ensure `:focus-visible` is visible:
@@ -221,7 +306,7 @@ The script:
 
 ## 10. Styling & Customization
 
-All content lives in the light DOM — no `::part` selectors needed. Style using standard CSS with data-attribute hooks:
+All content lives in the light DOM — style using standard CSS with data-attribute hooks. The play/pause button lives in the Shadow DOM and is stylable via `::part(play-pause)`:
 
 ```css
 /* Active item */
@@ -253,5 +338,11 @@ faceless-accordion > div[data-open] {
 /* Panel inner padding (use a wrapper to avoid height conflicts) */
 .panel-content {
   padding: 16px;
+}
+
+/* Play/pause button (Shadow DOM — use ::part) */
+faceless-accordion::part(play-pause) {
+  color: inherit;
+  font-size: 1.25rem;
 }
 ```

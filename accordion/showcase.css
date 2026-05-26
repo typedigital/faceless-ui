@@ -130,6 +130,50 @@ faceless-accordion > div[data-disabled] {
     --accordion-easing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ─── Play/Pause button (Shadow DOM) ─── */
+faceless-accordion::part(play-pause) {
+    color: var(--td-dark-blue);
+    font-size: 1.25rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: color 0.2s ease;
+}
+
+faceless-accordion::part(play-pause):hover {
+    color: var(--td-sunset);
+}
+
+/* ─── Autoplay progress bar demo ─── */
+.autoplay-progress > div {
+    overflow: hidden;
+}
+
+.autoplay-progress [data-trigger] {
+    position: relative;
+}
+
+.autoplay-progress [data-trigger][data-open]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 100%;
+    background: var(--td-sunset);
+    transform-origin: left;
+    animation: autoplay-progress var(--accordion-autoplay-interval, 4000ms) linear forwards;
+    animation-play-state: var(--accordion-autoplay-state, paused);
+}
+
+.autoplay-progress [data-trigger]:not([data-open])::before {
+    content: none;
+}
+
+@keyframes autoplay-progress {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
 /* ─── API control buttons ─── */
 .api-controls {
     display: flex;

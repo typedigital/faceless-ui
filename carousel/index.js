@@ -188,7 +188,7 @@ class FacelessCarousel extends BaseElement {
   }
 
   static get observedAttributes() {
-    return ['items-per-view', 'gap', 'loop', 'peek', 'peek-type', 'show-dots', 'autoplay', 'interval', 'mousewheel', 'hide-play-pause', 'no-snap', 'drag-threshold'];
+    return ['items-per-view', 'gap', 'loop', 'peek', 'peek-type', 'show-dots', 'autoplay', 'interval', 'mousewheel', 'hide-play-pause', 'no-snap', 'drag-threshold', 'dot-label'];
   }
 
   attributeChangedCallback() {
@@ -717,7 +717,8 @@ class FacelessCarousel extends BaseElement {
       dot.classList.add('dot');
       dot.setAttribute('part', 'dot');
       dot.setAttribute('role', 'tab');
-      dot.setAttribute('aria-label', `Slide ${i + 1}`);
+      const dotLabel = this.getAttribute('dot-label') || 'Slide';
+      dot.setAttribute('aria-label', `${dotLabel} ${i + 1}`);
       dot.setAttribute('aria-selected', 'false');
       dot.addEventListener('click', () => { this.goTo(i); this._stopAutoplay(); });
       this.dotsContainer.appendChild(dot);

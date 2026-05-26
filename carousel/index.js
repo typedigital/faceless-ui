@@ -132,9 +132,9 @@ if (template) template.innerHTML = `
   }
 </style>
 <button class="play-pause-btn" part="play-pause" aria-label="Pause auto-rotation">\u23F8</button>
-<div class="dots-container" part="dots-container" role="tablist"></div>
+k<div class="dots-container" part="dots-container"></div>
 <div class="viewport" part="viewport">
-  <div class="track" part="track" role="listbox" aria-live="off" aria-atomic="false">
+  <div class="track" part="track" aria-live="off" aria-atomic="false">
     <slot></slot>
   </div>
 </div>
@@ -193,10 +193,7 @@ class FacelessCarousel extends BaseElement {
 
   attributeChangedCallback() {
     if (!isBrowser) return;
-    if (this.isConnected) {
-      this._measure();
-      this._toggleDots();
-    }
+    if (this.isConnected) this._measure();
   }
 
   connectedCallback() {
@@ -710,7 +707,11 @@ class FacelessCarousel extends BaseElement {
 
   _renderDots() {
     this.dotsContainer.innerHTML = '';
-    if (!this.hasAttribute('show-dots') || this.getAttribute('show-dots') === 'false') return;
+    if (!this.hasAttribute('show-dots')) {
+      this.dotsContainer.removeAttribute('role');
+      return;
+    }
+    this.dotsContainer.setAttribute('role', 'tablist');
     for (let i = 0; i < this.state.realCount; i++) {
       const dot = document.createElement('button');
       dot.classList.add('dot');
@@ -738,14 +739,7 @@ class FacelessCarousel extends BaseElement {
   }
 
   _stopAutoplay() { if (this.state.autoplayTimer) { clearInterval(this.state.autoplayTimer); this.state.autoplayTimer = null; } }
-  _toggleDots() {
-    if (!this.dotsContainer) return;
-    const active = this.hasAttribute('show-dots') && this.getAttribute('show-dots') !== 'false';
-    this.dotsContainer.hidden = !active;
-    if (active && this.dotsContainer.children.length === 0) {
-      this._renderDots();
-    }
-  }
+  _toggleDots() { if (this.dotsContainer) this.dotsContainer.hidden = !this.hasAttribute('show-dots'); }
   _onGroupFocusIn() {
     cancelAnimationFrame(this._focusOutRaf);
     this._setPaused(true);

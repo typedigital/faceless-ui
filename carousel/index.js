@@ -7,6 +7,7 @@ if (template) template.innerHTML = `
     display: flex;
     flex-direction: column;
     position: relative;
+    min-width: 0;
     --items-per-view: 1;
     --gap: 0px;
     --internal-slide-width: 0px;
@@ -42,11 +43,6 @@ if (template) template.innerHTML = `
     box-sizing: border-box;
     width: var(--internal-slide-width) !important;
     transition: transform 0.5s ease, opacity 0.5s ease !important;
-    interactivity: inert;
-  }
-
-  ::slotted([data-visible]) {
-    interactivity: auto;
   }
 
   ::slotted(:not([data-visible]):not([slot])) {
@@ -216,7 +212,7 @@ class FacelessCarousel extends BaseElement {
     }
 
     this.viewport.addEventListener('mousedown', this._onDragStart);
-    this.viewport.addEventListener('touchstart', this._onDragStart, { passive: false });
+    this.viewport.addEventListener('touchstart', this._onDragStart, { passive: true });
     window.addEventListener('mouseup', this._onDragEnd);
     window.addEventListener('touchend', this._onDragEnd);
 
@@ -225,8 +221,12 @@ class FacelessCarousel extends BaseElement {
     this.viewport.addEventListener('wheel', this._onWheel, { passive: false });
     this.playPauseBtn.addEventListener('click', this._toggleAutoplay);
 
-    this.resizeObserver = new ResizeObserver(this._onResize);
-    this.resizeObserver.observe(this);
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(this._onResize);
+      this.resizeObserver.observe(this);
+    } else {
+      window.addEventListener('resize', this._onResize);
+    }
 
     this.slotEl.addEventListener('slotchange', () => {
       if (!this.state.isInitializing) this._deferredInit();
@@ -252,6 +252,7 @@ class FacelessCarousel extends BaseElement {
     cancelAnimationFrame(this.rafId);
     this._stopAutoplay();
     if (this.resizeObserver) this.resizeObserver.disconnect();
+    else window.removeEventListener('resize', this._onResize);
     if (this._hydrationObserver) this._hydrationObserver.disconnect();
     clearTimeout(this._hydrationTimer);
     window.removeEventListener('mouseup', this._onDragEnd);
@@ -273,7 +274,12 @@ class FacelessCarousel extends BaseElement {
 
   _onWheel(e) {
     if (!this.hasAttribute('mousewheel')) return;
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    let delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+
+    // Normalize deltaMode: Firefox uses LINE mode (1) for mouse wheels,
+    // which returns small values (e.g. 3) instead of pixel values (~100).
+    if (e.deltaMode === 1) delta *= 40;       // DOM_DELTA_LINE
+    else if (e.deltaMode === 2) delta *= 800; // DOM_DELTA_PAGE
 
     if (Math.abs(delta) < 5) return;
 
@@ -380,11 +386,13 @@ class FacelessCarousel extends BaseElement {
         if (isVisible) {
           el.setAttribute('data-visible', 'true');
           el.removeAttribute('aria-hidden');
-          el.querySelectorAll('a, button, input, select, textarea').forEach(c => c.removeAttribute('tabindex'));
+          el.inert = false;
+          el.querySelectorAll('a, button, input, select, textarea, [tabindex]').forEach(c => c.removeAttribute('tabindex'));
         } else {
           el.removeAttribute('data-visible');
           el.setAttribute('aria-hidden', 'true');
-          el.querySelectorAll('a, button, input, select, textarea').forEach(c => c.setAttribute('tabindex', '-1'));
+          el.inert = true;
+          el.querySelectorAll('a, button, input, select, textarea, [tabindex]').forEach(c => c.setAttribute('tabindex', '-1'));
         }
       }
     });
@@ -396,11 +404,14 @@ class FacelessCarousel extends BaseElement {
   }
 
   _applyA11yDefaults() {
-    // JS fallback for browsers without CSS interactivity: inert support.
-    // All slides start hidden; _syncActiveStates() reveals visible ones.
+    // All slides start hidden+inert; _syncActiveStates() reveals visible ones.
+    // Clears data-visible so _syncActiveStates change-detection re-triggers correctly.
+    // Uses both inert AND tabindex=-1 as fallback for Firefox slotted-content bug.
     Array.from(this.children).filter(el => !el.slot).forEach(el => {
+      el.removeAttribute('data-visible');
       el.setAttribute('aria-hidden', 'true');
-      el.querySelectorAll('a, button, input, select, textarea').forEach(c => c.setAttribute('tabindex', '-1'));
+      el.inert = true;
+      el.querySelectorAll('a, button, input, select, textarea, [tabindex]').forEach(c => c.setAttribute('tabindex', '-1'));
     });
   }
 
@@ -662,15 +673,15 @@ class FacelessCarousel extends BaseElement {
   _onDragStart(e) {
     this._stopAutoplay();
     this.state.isDragging = true;
-    this.state.startX = e.pageX || (e.touches ? e.touches[0].pageX : 0);
+    this.state.startX = e.touches ? e.touches[0].pageX : e.pageX;
     this.state.prevTranslate = this.state.currentTranslate;
     window.addEventListener('mousemove', this._onDragMove);
-    window.addEventListener('touchmove', this._onDragMove, { passive: false });
+    window.addEventListener('touchmove', this._onDragMove, { passive: true });
   }
 
   _onDragMove(e) {
     if (!this.state.isDragging) return;
-    const x = e.pageX || (e.touches ? e.touches[0].pageX : 0);
+    const x = e.touches ? e.touches[0].pageX : e.pageX;
     this.state.currentTranslate = this.state.prevTranslate + (x - this.state.startX);
   }
 
@@ -704,6 +715,7 @@ class FacelessCarousel extends BaseElement {
     const focusedElement = e.composedPath()[0];
     const slide = focusedElement.closest('[data-slide-idx]');
     if (!slide || slide.classList.contains('clone')) return;
+    if (slide.hasAttribute('data-visible')) return;
     const index = parseInt(slide.getAttribute('data-slide-idx'));
     this.goTo(index);
   }

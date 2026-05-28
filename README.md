@@ -23,6 +23,7 @@ There are no default styles to override. The component exposes data attributes (
 > |---|---|
 > | `<faceless-carousel>` | ✅ Production-ready |
 > | `<faceless-accordion>` | 🧪 Experimental |
+> | `<faceless-navigation>` | 🧪 Experimental |
 > | `<faceless-form>` + `<faceless-input>` | 🧪 Experimental |
 >
 > Experimental components are functional and tested, but their API may change before a stable release.
@@ -104,6 +105,7 @@ Faceless UI is the right choice when your product has a strong, bespoke design a
 |---|---|---|
 | Carousel | `<faceless-carousel>` | ✅ Production-ready — [docs](./carousel/docs.md) |
 | Accordion | `<faceless-accordion>` | 🧪 Experimental — [docs](./accordion/docs.md) |
+| Navigation | `<faceless-navigation>` | 🧪 Experimental — [docs](./navigation/docs.md) |
 | Form | `<faceless-form>` + `<faceless-input>` | 🧪 Experimental — [docs](./form/docs.md) |
 
 ---
@@ -208,6 +210,9 @@ Every event fires twice — once with the canonical hyphenated name and once wit
 |---|---|---|---|
 | Carousel | `carousel-change` | `carouselchange` | `{ index: number, total: number }` |
 | Accordion | `accordion-toggle` | `accordiontoggle` | `{ index: number, item: HTMLElement, open: boolean }` |
+| Navigation | `nav-toggle` | `navtoggle` | `{ submenu: HTMLElement, open: boolean, trigger: HTMLElement }` |
+| Navigation | `nav-type-change` | `navtypechange` | `{ type: string, previousType: string }` |
+| Navigation | `nav-hamburger-toggle` | `navhamburgertoggle` | `{ open: boolean }` |
 | Form | `form-submit` | `formsubmit` | `{ valid: boolean, errors: Record<string, string>, values: Record<string, string> }` |
 | Input | `input-change` | `inputchange` | `{ name: string, value: string }` |
 

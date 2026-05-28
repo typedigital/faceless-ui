@@ -1,0 +1,369 @@
+/* ─── Base ──────────────────────────────────────────────────────────────── */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    background: #f9fafb;
+    color: #1a1a2e;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+h2 {
+    font-size: 1.25rem;
+    margin-top: 48px;
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+p {
+    margin-bottom: 16px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+code {
+    background: #e5e7eb;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* ─── Shared Navigation Styles ──────────────────────────────────────────── */
+
+faceless-navigation {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+faceless-navigation nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* ─── Desktop Pattern ───────────────────────────────────────────────────── */
+
+faceless-navigation[data-type="desktop"] nav > ul {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+faceless-navigation[data-type="desktop"] nav > ul > li {
+    position: relative;
+}
+
+faceless-navigation[data-type="desktop"] nav > ul > li > a,
+faceless-navigation[data-type="desktop"] nav > ul > li > button {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+faceless-navigation[data-type="desktop"] nav > ul > li > a:hover,
+faceless-navigation[data-type="desktop"] nav > ul > li > button:hover,
+faceless-navigation[data-type="desktop"] nav > ul > li[data-open] > a,
+faceless-navigation[data-type="desktop"] nav > ul > li[data-open] > button {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+/* Dropdown submenus */
+faceless-navigation[data-type="desktop"] nav ul ul {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 180px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 4px 0;
+    z-index: 100;
+}
+
+/* Nested submenus open to the right */
+faceless-navigation[data-type="desktop"] nav ul ul ul {
+    top: 0;
+    left: 100%;
+}
+
+faceless-navigation[data-type="desktop"] nav ul ul[data-open] {
+    display: block;
+}
+
+faceless-navigation[data-type="desktop"] nav ul ul li a,
+faceless-navigation[data-type="desktop"] nav ul ul li button {
+    display: block;
+    padding: 8px 16px;
+    font-size: 14px;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+
+faceless-navigation[data-type="desktop"] nav ul ul li a:hover,
+faceless-navigation[data-type="desktop"] nav ul ul li button:hover {
+    background: #f3f4f6;
+}
+
+faceless-navigation[data-type="desktop"] nav ul ul li[data-open] > a {
+    background: #f3f4f6;
+    font-weight: 500;
+}
+
+/* Arrow indicator for items with submenus */
+faceless-navigation[data-type="desktop"] nav > ul > li > a[aria-expanded]::after,
+faceless-navigation[data-type="desktop"] nav > ul > li > button[aria-expanded]::after {
+    content: '▾';
+    margin-left: 6px;
+    font-size: 10px;
+    opacity: 0.5;
+}
+
+faceless-navigation[data-type="desktop"] nav ul ul li > a[aria-expanded]::after,
+faceless-navigation[data-type="desktop"] nav ul ul li > button[aria-expanded]::after {
+    content: '▸';
+    margin-left: auto;
+    padding-left: 8px;
+    font-size: 10px;
+    opacity: 0.5;
+}
+
+/* ─── Hamburger Pattern ─────────────────────────────────────────────────── */
+
+faceless-navigation[data-type="hamburger"] {
+    position: relative;
+}
+
+faceless-navigation[data-type="hamburger"]::part(hamburger-toggle) {
+    font-size: 24px;
+    padding: 8px 16px;
+    color: #374151;
+}
+
+faceless-navigation[data-type="hamburger"] nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 200;
+    padding: 8px 0;
+}
+
+faceless-navigation[data-hamburger-open] nav {
+    display: block;
+}
+
+faceless-navigation[data-type="hamburger"] nav li a,
+faceless-navigation[data-type="hamburger"] nav li button {
+    display: block;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+
+faceless-navigation[data-type="hamburger"] nav li a:hover,
+faceless-navigation[data-type="hamburger"] nav li button:hover {
+    background: #f3f4f6;
+}
+
+faceless-navigation[data-type="hamburger"] nav ul ul {
+    display: none;
+    padding-left: 16px;
+}
+
+faceless-navigation[data-type="hamburger"] nav ul ul[data-open] {
+    display: block;
+}
+
+faceless-navigation[data-type="hamburger"] nav li[data-open] > a {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* ─── App-Menu (Menubar) Pattern ────────────────────────────────────────── */
+
+faceless-navigation[data-type="app-menu"] nav > ul {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+faceless-navigation[data-type="app-menu"] nav > ul > li > a,
+faceless-navigation[data-type="app-menu"] nav > ul > li > button {
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+faceless-navigation[data-type="app-menu"] nav > ul > li > a:hover,
+faceless-navigation[data-type="app-menu"] nav > ul > li > button:hover,
+faceless-navigation[data-type="app-menu"] nav > ul > li[data-open] > a,
+faceless-navigation[data-type="app-menu"] nav > ul > li[data-open] > button {
+    background: #e9ecef;
+    border-radius: 4px;
+}
+
+faceless-navigation[data-type="app-menu"] nav > ul > li > a:focus-visible,
+faceless-navigation[data-type="app-menu"] nav > ul > li > button:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+    border-radius: 4px;
+}
+
+faceless-navigation[data-type="app-menu"] nav ul ul {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 160px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 4px 0;
+    z-index: 100;
+}
+
+faceless-navigation[data-type="app-menu"] nav ul ul ul {
+    top: 0;
+    left: 100%;
+}
+
+faceless-navigation[data-type="app-menu"] nav ul ul[data-open] {
+    display: block;
+}
+
+faceless-navigation[data-type="app-menu"] nav > ul > li {
+    position: relative;
+}
+
+faceless-navigation[data-type="app-menu"] nav ul ul li a,
+faceless-navigation[data-type="app-menu"] nav ul ul li button {
+    display: block;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+faceless-navigation[data-type="app-menu"] nav ul ul li a:hover,
+faceless-navigation[data-type="app-menu"] nav ul ul li button:hover {
+    background: #f3f4f6;
+}
+
+faceless-navigation[data-type="app-menu"] nav ul ul li a:focus-visible,
+faceless-navigation[data-type="app-menu"] nav ul ul li button:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+    background: #f3f4f6;
+}
+
+/* ─── Responsive Demo ───────────────────────────────────────────────────── */
+
+.responsive-nav {
+    --nav-type: desktop;
+}
+
+@media (max-width: 768px) {
+    .responsive-nav {
+        --nav-type: hamburger;
+    }
+}
+
+/* ─── API Controls ──────────────────────────────────────────────────────── */
+
+.api-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.api-controls button {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-family: inherit;
+    background: #1a1a2e;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.api-controls button:hover {
+    background: #2d2d4a;
+}
+
+/* ─── Focus Styles ──────────────────────────────────────────────────────── */
+
+faceless-navigation a:focus-visible,
+faceless-navigation button:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    border-radius: 2px;
+}

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faceless-navigation Master Demo</title>
+
+    <script src="index.js" defer></script>
+    <link rel="stylesheet" href="showcase.css">
+</head>
+<body>
+
+    <h1>Faceless-navigation Showroom</h1>
+
+    <!-- ─── 1. Desktop Navigation ────────────────────────────────────── -->
+    <h2>1. Desktop Navigation</h2>
+    <p>Horizontal nav with dropdown submenus. Click a toggle to open its submenu.</p>
+
+    <faceless-navigation aria-label="Desktop demo" type="desktop" id="demo-desktop">
+        <nav>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li>
+                    <a href="#products">Products</a>
+                    <ul>
+                        <li><a href="#product-a">Product A</a></li>
+                        <li><a href="#product-b">Product B</a></li>
+                        <li><a href="#product-c">Product C</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#services">Services</a>
+                    <ul>
+                        <li><a href="#consulting">Consulting</a></li>
+                        <li><a href="#support">Support</a></li>
+                    </ul>
+                </li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </faceless-navigation>
+
+    <!-- ─── 2. Hamburger Navigation ──────────────────────────────────── -->
+    <h2>2. Hamburger Navigation</h2>
+    <p>Mobile-style menu with a hamburger toggle. Click the ☰ button to open the overlay.</p>
+
+    <faceless-navigation aria-label="Hamburger demo" type="hamburger" id="demo-hamburger">
+        <nav>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li>
+                    <a href="#products">Products</a>
+                    <ul>
+                        <li><a href="#product-a">Product A</a></li>
+                        <li><a href="#product-b">Product B</a></li>
+                    </ul>
+                </li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </faceless-navigation>
+
+    <!-- ─── 3. App-Menu Navigation ───────────────────────────────────── -->
+    <h2>3. App-Menu Navigation (Menubar)</h2>
+    <p>Application-style menubar with arrow key navigation, roving tabindex, Home/End, and character search.</p>
+
+    <faceless-navigation aria-label="Application menu demo" type="app-menu" id="demo-appmenu">
+        <nav>
+            <ul>
+                <li>
+                    <button>File</button>
+                    <ul>
+                        <li><a href="#new">New</a></li>
+                        <li><a href="#open">Open</a></li>
+                        <li><a href="#save">Save</a></li>
+                        <li><a href="#save-as">Save As…</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <button>Edit</button>
+                    <ul>
+                        <li><a href="#undo">Undo</a></li>
+                        <li><a href="#redo">Redo</a></li>
+                        <li><a href="#cut">Cut</a></li>
+                        <li><a href="#copy">Copy</a></li>
+                        <li><a href="#paste">Paste</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <button>View</button>
+                    <ul>
+                        <li><a href="#zoom-in">Zoom In</a></li>
+                        <li><a href="#zoom-out">Zoom Out</a></li>
+                        <li><a href="#fullscreen">Fullscreen</a></li>
+                    </ul>
+                </li>
+                <li><a href="#help">Help</a></li>
+            </ul>
+        </nav>
+    </faceless-navigation>
+
+    <!-- ─── 4. Responsive Navigation ─────────────────────────────────── -->
+    <h2>4. Responsive Navigation</h2>
+    <p>This nav switches between desktop and hamburger based on viewport width (resize the browser below 768px). Uses <code>--nav-type</code> CSS variable with a media query.</p>
+
+    <faceless-navigation aria-label="Responsive demo" id="demo-responsive" class="responsive-nav">
+        <nav>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li>
+                    <a href="#products">Products</a>
+                    <ul>
+                        <li><a href="#product-a">Product A</a></li>
+                        <li><a href="#product-b">Product B</a></li>
+                    </ul>
+                </li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </faceless-navigation>
+
+    <!-- ─── 5. Deep Nesting ──────────────────────────────────────────── -->
+    <h2>5. Deep Nesting (3+ levels)</h2>
+    <p>Submenus nested three levels deep.</p>
+
+    <faceless-navigation aria-label="Deep nesting demo" type="desktop" id="demo-deep">
+        <nav>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li>
+                    <a href="#categories">Categories</a>
+                    <ul>
+                        <li>
+                            <a href="#electronics">Electronics</a>
+                            <ul>
+                                <li>
+                                    <a href="#phones">Phones</a>
+                                    <ul>
+                                        <li><a href="#android">Android</a></li>
+                                        <li><a href="#ios">iOS</a></li>
+                                    </ul>
+                                </li>
+                                <li><a href="#laptops">Laptops</a></li>
+                                <li><a href="#tablets">Tablets</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="#clothing">Clothing</a>
+                            <ul>
+                                <li><a href="#mens">Men's</a></li>
+                                <li><a href="#womens">Women's</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li><a href="#about">About</a></li>
+            </ul>
+        </nav>
+    </faceless-navigation>
+
+    <!-- ─── 6. Hover-Open ────────────────────────────────────────────── -->
+    <h2>6. Hover-Open</h2>
+    <p>Desktop navigation with <code>hover-open</code> attribute. Hover over items with submenus to open them.</p>
+
+    <faceless-navigation aria-label="Hover demo" type="desktop" hover-open hover-delay="150" id="demo-hover">
+        <nav>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li>
+                    <a href="#products">Products</a>
+                    <ul>
+                        <li><a href="#product-a">Product A</a></li>
+                        <li><a href="#product-b">Product B</a></li>
+                        <li><a href="#product-c">Product C</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#services">Services</a>
+                    <ul>
+                        <li><a href="#consulting">Consulting</a></li>
+                        <li><a href="#support">Support</a></li>
+                    </ul>
+                </li>
+                <li><a href="#about">About</a></li>
+            </ul>
+        </nav>
+    </faceless-navigation>
+
+    <!-- ─── 7. API Demo ──────────────────────────────────────────────── -->
+    <h2>7. API Demo</h2>
+    <p>Control the navigation programmatically using the public API.</p>
+
+    <div class="api-controls">
+        <button onclick="document.getElementById('demo-api').open(0)">Open 1st submenu</button>
+        <button onclick="document.getElementById('demo-api').open(1)">Open 2nd submenu</button>
+        <button onclick="document.getElementById('demo-api').closeAll()">Close All</button>
+    </div>
+
+    <faceless-navigation aria-label="API demo" type="desktop" id="demo-api">
+        <nav>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li>
+                    <a href="#products">Products</a>
+                    <ul>
+                        <li><a href="#product-a">Product A</a></li>
+                        <li><a href="#product-b">Product B</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#services">Services</a>
+                    <ul>
+                        <li><a href="#consulting">Consulting</a></li>
+                        <li><a href="#support">Support</a></li>
+                    </ul>
+                </li>
+                <li><a href="#about">About</a></li>
+            </ul>
+        </nav>
+    </faceless-navigation>
+
+    <!-- Event log -->
+    <h2>Event Log</h2>
+    <p>Events from all demos are logged below.</p>
+    <pre id="event-log" style="background: #1a1a2e; color: #e0e0e0; padding: 16px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-size: 13px;"></pre>
+
+    <script>
+        const log = document.getElementById('event-log');
+        function logEvent(e) {
+            const time = new Date().toLocaleTimeString();
+            const source = e.target.closest('faceless-navigation')?.id || '?';
+            log.textContent += `[${time}] ${source}: ${e.type} ${JSON.stringify(e.detail)}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+        document.querySelectorAll('faceless-navigation').forEach(nav => {
+            nav.addEventListener('nav-toggle', logEvent);
+            nav.addEventListener('nav-type-change', logEvent);
+            nav.addEventListener('nav-hamburger-toggle', logEvent);
+        });
+    </script>
+
+</body>
+</html>

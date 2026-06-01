@@ -176,7 +176,19 @@ vue({
 
 #### Angular
 
-Add `CUSTOM_ELEMENTS_SCHEMA` to every standalone component (or NgModule) that uses a Faceless element:
+**Option A — Typed Directives (recommended):** Import the auto-generated standalone directives from `types/angular.ts`. This gives you typed `@Input` bindings (with `booleanAttribute`/`numberAttribute` transforms) and typed `@Output` event emitters — no `CUSTOM_ELEMENTS_SCHEMA` needed:
+
+```ts
+import { FacelessCarouselDirective } from 'faceless-ui/types/angular';
+
+@Component({
+  standalone: true,
+  imports: [FacelessCarouselDirective],
+  template: `<faceless-carousel [itemsPerView]="3" (slide-change)="onSlide($event)" />`,
+})
+```
+
+**Option B — Schema:** Add `CUSTOM_ELEMENTS_SCHEMA` to every standalone component (or NgModule) that uses a Faceless element:
 
 ```ts
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';

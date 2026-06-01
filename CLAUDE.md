@@ -221,7 +221,15 @@ npm run cem          # regenerates custom-elements.json
 - Adding or removing a **`::part`** → update `@csspart` tags
 - Adding or removing a **`<slot>`** → update `@slot` tags
 
-After modifying any JSDoc annotation, run `npm run cem` to regenerate the manifest.
+After modifying any JSDoc annotation, run `npm run cem && npm run types` to regenerate the manifest and type declarations.
+
+### Type Generation
+
+`scripts/generate-types.mjs` reads `custom-elements.json` and generates all framework-specific type declarations in `types/`. It extracts everything from the CEM — **no hardcoded type configs in the script**.
+
+- Every `@fires` tag description **must** include a backtick-quoted detail block: `` `detail: { field: type, ... }` ``
+- Events with empty detail use `` `detail: {}` ``
+- The generator parses these descriptions to produce typed event detail interfaces
 
 ### Required JSDoc Tags
 

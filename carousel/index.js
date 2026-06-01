@@ -657,12 +657,16 @@ class FacelessCarousel extends BaseElement {
 
   goTo(index, animate = true) {
     const { realCount, cloneCount, stride } = this.state;
+    const prevRealIdx = ((this.state.currentIndex % realCount) + realCount) % realCount;
     if (!this.hasAttribute('loop')) index = Math.max(0, Math.min(index, realCount - 1));
     this.state.currentIndex = index;
     const target = -((cloneCount + index) * stride);
     if (animate) this.state.targetTranslate = target;
     else { this.state.currentTranslate = target; this.state.targetTranslate = target; }
     const realIdx = ((index % realCount) + realCount) % realCount;
+    if (realIdx !== prevRealIdx) {
+      this._emit('slide-change', { index: realIdx, previousIndex: prevRealIdx, total: realCount });
+    }
     if (this.srAnnouncer) this.srAnnouncer.textContent = `Slide ${realIdx + 1} of ${realCount}`;
     this._syncActiveStates();
   }
@@ -675,8 +679,12 @@ class FacelessCarousel extends BaseElement {
     this.state.isDragging = true;
     this.state.startX = e.touches ? e.touches[0].pageX : e.pageX;
     this.state.prevTranslate = this.state.currentTranslate;
+    this.state.dragStartIndex = this.state.currentIndex;
     window.addEventListener('mousemove', this._onDragMove);
     window.addEventListener('touchmove', this._onDragMove, { passive: true });
+    const { realCount } = this.state;
+    const realIdx = ((this.state.currentIndex % realCount) + realCount) % realCount;
+    this._emit('drag-start', { index: realIdx });
   }
 
   _onDragMove(e) {
@@ -702,7 +710,11 @@ class FacelessCarousel extends BaseElement {
     } else {
       targetIndex = (1 - fraction) >= threshold ? Math.floor(exactIndex) : Math.ceil(exactIndex);
     }
+    const { realCount } = this.state;
+    const prevRealIdx = ((this.state.dragStartIndex % realCount) + realCount) % realCount;
     this.goTo(targetIndex);
+    const newRealIdx = ((targetIndex % realCount) + realCount) % realCount;
+    this._emit('drag-end', { index: newRealIdx, previousIndex: prevRealIdx });
     if (this.hasAttribute('autoplay') && !this.state.isUserPaused) this._startAutoplay();
   }
 
@@ -784,8 +796,10 @@ class FacelessCarousel extends BaseElement {
     this.state.isPaused = paused;
     if (paused) {
       this._stopAutoplay();
+      if (this.hasAttribute('autoplay')) this._emit('autoplay-pause', {});
     } else if (this.hasAttribute('autoplay') && !this.state.isUserPaused) {
       this._startAutoplay();
+      this._emit('autoplay-resume', {});
     }
     this._updateAriaLive();
   }
@@ -794,9 +808,11 @@ class FacelessCarousel extends BaseElement {
     this.state.isUserPaused = !this.state.isUserPaused;
     if (this.state.isUserPaused) {
       this._stopAutoplay();
+      this._emit('autoplay-pause', {});
     } else if (this.hasAttribute('autoplay')) {
       this.state.isPaused = false;
       this._startAutoplay();
+      this._emit('autoplay-resume', {});
     }
     this._updatePlayPauseButton();
     this._updateAriaLive();
@@ -833,6 +849,12 @@ class FacelessCarousel extends BaseElement {
     this.track.setAttribute('aria-live', value);
     this.srAnnouncer.setAttribute('aria-live', value);
   }
+  _emit(name, detail) {
+    const opts = { bubbles: true, composed: true, detail };
+    this.dispatchEvent(new CustomEvent(name, opts));
+    this.dispatchEvent(new CustomEvent(name.replace(/-/g, ''), opts));
+  }
+
   _onResize() { this._measure(); }
 }
 

@@ -39,8 +39,6 @@ class FacelessForm extends BaseElement {
     ['action', 'method', 'enctype'].forEach(p => this._upgradeProperty(p));
   }
 
-  // -- Property getters/setters for framework compatibility --
-
   get action() {
     if (!isBrowser) return '';
     return this.getAttribute('action') || '';
@@ -93,7 +91,6 @@ class FacelessForm extends BaseElement {
   connectedCallback() {
     if (!isBrowser) return;
 
-    // Create or find <form> in light DOM
     let form = this.querySelector(':scope > form');
     if (!form) {
       form = document.createElement('form');
@@ -105,14 +102,12 @@ class FacelessForm extends BaseElement {
     }
     this._form = form;
 
-    // Forward host attributes to the <form>
     for (const attr of ['action', 'method', 'enctype', 'aria-label']) {
       if (this.hasAttribute(attr)) {
         form.setAttribute(attr, this.getAttribute(attr));
       }
     }
 
-    // Host landmark
     this.setAttribute('role', 'region');
     if (!this.hasAttribute('aria-label')) {
       this.setAttribute('aria-label', 'Form');
@@ -138,8 +133,6 @@ class FacelessForm extends BaseElement {
   _init() {
     if (!this._form) return;
 
-    // Adopt children that ended up outside <form> (frameworks like Angular
-    // add children after connectedCallback, so they become siblings of <form>)
     Array.from(this.childNodes).forEach(child => {
       if (child !== this._form) {
         this._form.appendChild(child);
@@ -151,7 +144,6 @@ class FacelessForm extends BaseElement {
     const fieldEls = Array.from(this._form.querySelectorAll('[data-field]'));
 
     fieldEls.forEach(fieldEl => {
-      // Skip fields belonging to a nested faceless-form
       if (fieldEl.closest('faceless-form') !== this) return;
 
       const fieldId = fieldEl.dataset.field;
@@ -170,7 +162,6 @@ class FacelessForm extends BaseElement {
       const hintId = hintEl ? `ff${uid}-${fieldId}-hint` : null;
       const errorId = errorEl ? `ff${uid}-${fieldId}-error` : null;
 
-      // Assign IDs
       inputEl.setAttribute('id', inputId);
       if (labelEl) {
         labelEl.setAttribute('id', labelId);
@@ -179,23 +170,19 @@ class FacelessForm extends BaseElement {
       if (hintEl && hintId) hintEl.setAttribute('id', hintId);
       if (errorEl && errorId) errorEl.setAttribute('id', errorId);
 
-      // aria-describedby
       const describedBy = [hintId, errorId].filter(Boolean).join(' ');
       if (describedBy) {
         inputEl.setAttribute('aria-describedby', describedBy);
       }
 
-      // Apply custom pattern
       if (fieldEl.dataset.pattern) {
         inputEl.setAttribute('pattern', fieldEl.dataset.pattern);
       }
 
-      // aria-required
       if (inputEl.hasAttribute('required')) {
         inputEl.setAttribute('aria-required', 'true');
       }
 
-      // aria-invalid initial state
       inputEl.setAttribute('aria-invalid', 'false');
 
       this.state.fields.push({
@@ -209,7 +196,6 @@ class FacelessForm extends BaseElement {
       });
     });
 
-    // Error summary: make focusable
     const summaryEl = this._form.querySelector('[data-error-summary]');
     if (summaryEl) {
       summaryEl.setAttribute('tabindex', '-1');
@@ -265,8 +251,6 @@ class FacelessForm extends BaseElement {
     return errors;
   }
 
-  // ─── Public API ────────────────────────────────────────────────────────────
-
   setError(fieldId, message) {
     const field = this.state.fields.find(f => f.id === fieldId);
     if (!field) return;
@@ -286,9 +270,7 @@ class FacelessForm extends BaseElement {
   }
 
   setErrors(errorsObj) {
-    // Clear all first
     this.state.fields.forEach(f => this.clearError(f.id));
-    // Apply new errors
     Object.entries(errorsObj).forEach(([id, msg]) => this.setError(id, msg));
     this._updateErrorSummary();
     this._moveFocusToErrors();
@@ -328,8 +310,6 @@ class FacelessForm extends BaseElement {
     this.clearErrors();
     this._form?.reset();
   }
-
-  // ─── Private helpers ───────────────────────────────────────────────────────
 
   _updateErrorSummary() {
     if (!this._form) return;
@@ -522,6 +502,7 @@ class FacelessInput extends BaseElement {
     this._unbindControlEvents();
     const control = this.querySelector('[data-input]');
     if (!control) return;
+
     this._onControlInput = () => {
       this._syncToInternals();
       const detail = { name: this.getAttribute('name'), value: control.value };
@@ -529,16 +510,35 @@ class FacelessInput extends BaseElement {
       this.dispatchEvent(new CustomEvent('input-change', opts));
       this.dispatchEvent(new CustomEvent('inputchange', opts));
     };
+
+    this._onControlChange = (e) => {
+      e.stopPropagation();
+      this.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+    };
+
+    this._onControlBlur = (e) => {
+      if (!this.contains(e.relatedTarget)) {
+        this.dispatchEvent(new Event('blur', { bubbles: false, composed: true }));
+        this.dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true }));
+      }
+    };
+
     control.addEventListener('input', this._onControlInput);
-    // Initial sync
+    control.addEventListener('change', this._onControlChange);
+    control.addEventListener('focusout', this._onControlBlur);
     this._syncToInternals();
   }
 
   _unbindControlEvents() {
-    if (!this._onControlInput) return;
     const control = this.querySelector('[data-input]');
-    if (control) control.removeEventListener('input', this._onControlInput);
+    if (control) {
+      if (this._onControlInput) control.removeEventListener('input', this._onControlInput);
+      if (this._onControlChange) control.removeEventListener('change', this._onControlChange);
+      if (this._onControlBlur) control.removeEventListener('focusout', this._onControlBlur);
+    }
     this._onControlInput = null;
+    this._onControlChange = null;
+    this._onControlBlur = null;
   }
 
   _syncToInternals() {
@@ -564,7 +564,6 @@ class FacelessInput extends BaseElement {
 
   attributeChangedCallback(name, _oldVal, newVal) {
     if (!isBrowser) return;
-    // Guard: internal DOM not yet built (called before connectedCallback)
     if (!this.querySelector('[data-input]')) return;
 
     if (name === 'label') {
@@ -587,30 +586,26 @@ class FacelessInput extends BaseElement {
     const labelText = this.getAttribute('label') || '';
     const hintText = this.getAttribute('hint');
 
-    // Label
     const labelEl = document.createElement('label');
     labelEl.setAttribute('data-label', '');
     labelEl.textContent = labelText;
 
-    // Control
     let control;
     if (elementType === 'select') {
       control = document.createElement('select');
-      // Move existing <option>/<optgroup> children into the <select>
       Array.from(this.children).forEach(child => {
         if (child.tagName === 'OPTION' || child.tagName === 'OPTGROUP') {
           control.appendChild(child);
         }
       });
     } else {
-      control = document.createElement(elementType); // 'input' or 'textarea'
+      control = document.createElement(elementType);
       if (elementType === 'input') {
         control.type = this.getAttribute('type') || 'text';
       }
     }
     control.setAttribute('data-input', '');
 
-    // Hint (optional)
     let hintEl = null;
     if (hintText !== null) {
       hintEl = document.createElement('span');
@@ -618,7 +613,6 @@ class FacelessInput extends BaseElement {
       hintEl.textContent = hintText;
     }
 
-    // Error container
     const errorEl = document.createElement('span');
     errorEl.setAttribute('data-error', '');
 
@@ -635,7 +629,6 @@ class FacelessInput extends BaseElement {
     const control = this.querySelector('[data-input]');
     if (!control) return;
 
-    // Forward input/control attributes
     const fwd = [
       'name', 'required', 'placeholder', 'autocomplete',
       'minlength', 'maxlength', 'min', 'max', 'step',
@@ -644,7 +637,6 @@ class FacelessInput extends BaseElement {
     const booleanAttrs = new Set(['required', 'disabled']);
     fwd.forEach(attr => {
       if (booleanAttrs.has(attr)) {
-        // Boolean attributes: React may set "false" as a string on custom elements
         const val = this.getAttribute(attr);
         if (val !== null && val !== 'false') {
           control.setAttribute(attr, '');
@@ -658,7 +650,6 @@ class FacelessInput extends BaseElement {
       }
     });
 
-    // pattern → control[pattern] + this.dataset.pattern (read by faceless-form _init)
     if (this.hasAttribute('pattern')) {
       control.setAttribute('pattern', this.getAttribute('pattern'));
       this.dataset.pattern = this.getAttribute('pattern');
@@ -667,7 +658,6 @@ class FacelessInput extends BaseElement {
       delete this.dataset.pattern;
     }
 
-    // error-* attributes → this.dataset.* (read by faceless-form _runValidation)
     for (const [attr, key] of [
       ['error-required', 'errorRequired'],
       ['error-type', 'errorType'],
@@ -681,7 +671,6 @@ class FacelessInput extends BaseElement {
       }
     }
 
-    // Keep data-field in sync if name changes
     if (this.hasAttribute('name')) {
       this.setAttribute('data-field', this.getAttribute('name'));
     }
@@ -689,3 +678,300 @@ class FacelessInput extends BaseElement {
 }
 
 if (isBrowser) customElements.define('faceless-input', FacelessInput);
+
+// ─── FacelessCheckbox ──────────────────────────────────────────────────────────
+// Shortcut companion for <faceless-form>. Renders as a [data-field] wrapper
+// with internal <label> wrapping <input type="checkbox|radio">, optional
+// [data-hint], and [data-error] in light DOM — no shadow root needed.
+
+class FacelessCheckbox extends BaseElement {
+  static formAssociated = true;
+
+  static get observedAttributes() {
+    return [
+      'name', 'type',
+      'label', 'hint',
+      'value',
+      'checked',
+      'disabled', 'required',
+      'group',
+      'error-required', 'error-message',
+    ];
+  }
+
+  constructor() {
+    super();
+    if (!isBrowser) return;
+
+    if (this.attachInternals) {
+      this._internals = this.attachInternals();
+    }
+
+    const props = [
+      'name', 'type', 'label', 'hint', 'value',
+      'checked', 'disabled', 'required', 'group',
+      'errorRequired', 'errorMessage',
+    ];
+    props.forEach(p => this._upgradeProperty(p));
+  }
+
+  get name() { return this.getAttribute('name') || ''; }
+  set name(val) { val == null || val === '' ? this.removeAttribute('name') : this.setAttribute('name', val); }
+
+  get type() { return this.getAttribute('type') || 'checkbox'; }
+  set type(val) { val == null || val === '' ? this.removeAttribute('type') : this.setAttribute('type', val); }
+
+  get label() { return this.getAttribute('label') || ''; }
+  set label(val) { val == null || val === '' ? this.removeAttribute('label') : this.setAttribute('label', val); }
+
+  get hint() { return this.getAttribute('hint'); }
+  set hint(val) { val == null ? this.removeAttribute('hint') : this.setAttribute('hint', val); }
+
+  get value() { return this.getAttribute('value') || 'on'; }
+  set value(val) { val == null || val === '' ? this.removeAttribute('value') : this.setAttribute('value', val); }
+
+  get checked() {
+    const control = this.querySelector('[data-input]');
+    return control ? control.checked : this.hasAttribute('checked');
+  }
+  set checked(val) {
+    const control = this.querySelector('[data-input]');
+    if (control) control.checked = !!val;
+    val ? this.setAttribute('checked', '') : this.removeAttribute('checked');
+    this._syncVisualState();
+  }
+
+  get disabled() { return this.hasAttribute('disabled') && this.getAttribute('disabled') !== 'false'; }
+  set disabled(val) { val && val !== 'false' ? this.setAttribute('disabled', '') : this.removeAttribute('disabled'); }
+
+  get required() { return this.hasAttribute('required') && this.getAttribute('required') !== 'false'; }
+  set required(val) { val && val !== 'false' ? this.setAttribute('required', '') : this.removeAttribute('required'); }
+
+  get group() { return this.getAttribute('group') || ''; }
+  set group(val) { val == null || val === '' ? this.removeAttribute('group') : this.setAttribute('group', val); }
+
+  get errorRequired() { return this.getAttribute('error-required') || ''; }
+  set errorRequired(val) { val == null || val === '' ? this.removeAttribute('error-required') : this.setAttribute('error-required', val); }
+
+  get errorMessage() { return this.getAttribute('error-message') || ''; }
+  set errorMessage(val) { val == null || val === '' ? this.removeAttribute('error-message') : this.setAttribute('error-message', val); }
+
+  _upgradeProperty(prop) {
+    if (this.hasOwnProperty(prop)) {
+      const value = this[prop];
+      delete this[prop];
+      this[prop] = value;
+    }
+  }
+
+  connectedCallback() {
+    if (!isBrowser) return;
+
+    this.setAttribute('data-field', this.getAttribute('name') || '');
+
+    if (this.querySelector('[data-input]')) {
+      this._wireAttributes();
+      this._bindControlEvents();
+      this._syncVisualState();
+      return;
+    }
+
+    this._buildDOM();
+  }
+
+  disconnectedCallback() {
+    if (!isBrowser) return;
+    this._unbindControlEvents();
+  }
+
+  _buildDOM() {
+    const controlType = this.getAttribute('type') || 'checkbox';
+    const labelText = this.getAttribute('label') || '';
+    const hintText = this.getAttribute('hint');
+
+    const labelEl = document.createElement('label');
+    labelEl.setAttribute('data-label', '');
+
+    const control = document.createElement('input');
+    control.type = controlType === 'radio' ? 'radio' : 'checkbox';
+    control.setAttribute('data-input', '');
+
+    const labelSpan = document.createElement('span');
+    labelSpan.setAttribute('data-label-text', '');
+    labelSpan.textContent = labelText;
+
+    labelEl.appendChild(control);
+    labelEl.appendChild(labelSpan);
+
+    let hintEl = null;
+    if (hintText !== null) {
+      hintEl = document.createElement('span');
+      hintEl.setAttribute('data-hint', '');
+      hintEl.textContent = hintText;
+    }
+
+    const errorEl = document.createElement('span');
+    errorEl.setAttribute('data-error', '');
+
+    const toAppend = [labelEl];
+    if (hintEl) toAppend.push(hintEl);
+    toAppend.push(errorEl);
+    this.append(...toAppend);
+
+    this._wireAttributes();
+    this._bindControlEvents();
+    this._syncVisualState();
+  }
+
+  _wireAttributes() {
+    const control = this.querySelector('[data-input]');
+    if (!control) return;
+
+    if (this.hasAttribute('name')) control.setAttribute('name', this.getAttribute('name'));
+    else control.removeAttribute('name');
+
+    if (this.hasAttribute('value')) control.setAttribute('value', this.getAttribute('value'));
+    else control.setAttribute('value', 'on');
+
+    const booleanAttrs = ['required', 'disabled'];
+    booleanAttrs.forEach(attr => {
+      const val = this.getAttribute(attr);
+      if (val !== null && val !== 'false') {
+        control.setAttribute(attr, '');
+      } else {
+        control.removeAttribute(attr);
+      }
+    });
+
+    if (this.hasAttribute('checked')) {
+      control.checked = true;
+    }
+
+    const controlType = this.getAttribute('type') || 'checkbox';
+    control.type = controlType === 'radio' ? 'radio' : 'checkbox';
+
+    for (const [attr, key] of [
+      ['error-required', 'errorRequired'],
+      ['error-message', 'errorMessage'],
+    ]) {
+      if (this.hasAttribute(attr)) {
+        this.dataset[key] = this.getAttribute(attr);
+      } else {
+        delete this.dataset[key];
+      }
+    }
+
+    if (this.hasAttribute('name')) {
+      this.setAttribute('data-field', this.getAttribute('name'));
+    }
+  }
+
+  _bindControlEvents() {
+    this._unbindControlEvents();
+    const control = this.querySelector('[data-input]');
+    if (!control) return;
+
+    this._onControlChange = (e) => {
+      this._syncToInternals();
+      if (control.type === 'radio') this._syncRadioGroup();
+      this._syncVisualState();
+
+      const detail = { name: this.getAttribute('name'), value: control.value, checked: control.checked };
+      const opts = { bubbles: true, composed: true, detail };
+      this.dispatchEvent(new CustomEvent('check-change', opts));
+      this.dispatchEvent(new CustomEvent('checkchange', opts));
+      e.stopPropagation();
+      this.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+    };
+
+    this._onControlBlur = (e) => {
+      if (!this.contains(e.relatedTarget)) {
+        this.dispatchEvent(new Event('blur', { bubbles: false, composed: true }));
+        this.dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true }));
+      }
+    };
+
+    control.addEventListener('change', this._onControlChange);
+    control.addEventListener('focusout', this._onControlBlur);
+  }
+
+  _unbindControlEvents() {
+    const control = this.querySelector('[data-input]');
+    if (control) {
+      if (this._onControlChange) control.removeEventListener('change', this._onControlChange);
+      if (this._onControlBlur) control.removeEventListener('focusout', this._onControlBlur);
+    }
+    this._onControlChange = null;
+    this._onControlBlur = null;
+  }
+
+  _syncToInternals() {
+    if (!this._internals) return;
+    const control = this.querySelector('[data-input]');
+    if (!control) return;
+    this._internals.setFormValue(control.checked ? control.value : null);
+    if (control.validity) {
+      this._internals.setValidity(control.validity, control.validationMessage, control);
+    }
+  }
+
+  _syncRadioGroup() {
+    const name = this.getAttribute('name');
+    if (!name) return;
+    const form = this.closest('faceless-form') || this.closest('form') || document;
+    const siblings = form.querySelectorAll(`faceless-checkbox[name="${name}"][type="radio"]`);
+    siblings.forEach(sib => {
+      if (sib !== this) {
+        sib.removeAttribute('checked');
+        sib._syncVisualState();
+      }
+    });
+  }
+
+  _syncVisualState() {
+    const control = this.querySelector('[data-input]');
+    if (!control) return;
+    control.checked ? this.setAttribute('data-checked', '') : this.removeAttribute('data-checked');
+  }
+
+  formResetCallback() {
+    const control = this.querySelector('[data-input]');
+    if (control) control.checked = this.hasAttribute('checked');
+    this._syncToInternals();
+    this._syncVisualState();
+  }
+
+  formDisabledCallback(disabled) {
+    const control = this.querySelector('[data-input]');
+    if (control) control.disabled = disabled;
+  }
+
+  attributeChangedCallback(name, _oldVal, newVal) {
+    if (!isBrowser) return;
+    if (!this.querySelector('[data-input]')) return;
+
+    if (name === 'label') {
+      const labelText = this.querySelector('[data-label-text]');
+      if (labelText) labelText.textContent = newVal ?? '';
+      return;
+    }
+
+    if (name === 'hint') {
+      const hintEl = this.querySelector('[data-hint]');
+      if (hintEl) hintEl.textContent = newVal ?? '';
+      return;
+    }
+
+    if (name === 'checked') {
+      const control = this.querySelector('[data-input]');
+      if (control) control.checked = newVal !== null;
+      this._syncToInternals();
+      this._syncVisualState();
+      return;
+    }
+
+    this._wireAttributes();
+  }
+}
+
+if (isBrowser) customElements.define('faceless-checkbox', FacelessCheckbox);

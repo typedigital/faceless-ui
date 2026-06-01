@@ -303,3 +303,30 @@ select[data-input] {
 
 /* ─── faceless-input host ─── */
 faceless-input { display: block; }
+
+/* ─── faceless-checkbox host ─── */
+faceless-checkbox { display: block; }
+
+/* ─── Checkbox / radio label layout ─── */
+faceless-checkbox [data-label] {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 400;
+}
+
+faceless-checkbox [data-label-text] {
+    font-size: 0.95rem;
+}
+
+/* Checked visual state */
+faceless-checkbox[data-checked] [data-label-text] {
+    font-weight: 600;
+}
+
+/* Radio/checkbox group spacing */
+.checkbox-group faceless-checkbox,
+.radio-group faceless-checkbox {
+    margin-bottom: 8px;
+}

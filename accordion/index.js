@@ -69,6 +69,28 @@ if (template) template.innerHTML = `
 
 const BaseElement = isBrowser ? HTMLElement : class {};
 
+/**
+ * A headless accordion component with single/multiple open modes, autoplay,
+ * smooth height animation, and full keyboard/screen-reader support.
+ * Child items use `[data-trigger]` and `[data-panel]` attributes.
+ *
+ * @element faceless-accordion
+ *
+ * @attr {boolean} multiple - Allow multiple panels open simultaneously (default: single-open).
+ * @attr {boolean} autoplay - Enable automatic panel rotation.
+ * @attr {number} interval - Autoplay interval in milliseconds (default: 3000).
+ * @attr {boolean} hide-play-pause - Visually hide the autoplay play/pause button.
+ *
+ * @fires {CustomEvent} accordion-toggle - Fires when a panel opens or closes. `detail: { index: number, item: HTMLElement, open: boolean }`
+ * @fires {CustomEvent} accordiontoggle - Alias of `accordion-toggle`.
+ *
+ * @slot - Default slot for accordion items, each containing `[data-trigger]` and `[data-panel]`.
+ *
+ * @cssprop [--accordion-duration=300ms] - Panel open/close animation duration.
+ * @cssprop [--accordion-easing=ease] - Panel animation easing function.
+ * @cssprop [--accordion-focus-ring=2px solid currentColor] - Focus ring style for triggers.
+ * @cssprop [--accordion-focus-ring-offset=2px] - Focus ring offset.
+ */
 class FacelessAccordion extends BaseElement {
   constructor() {
     super();

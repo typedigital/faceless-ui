@@ -139,6 +139,56 @@ if (template) template.innerHTML = `
 
 const BaseElement = isBrowser ? HTMLElement : class {};
 
+/**
+ * A headless carousel component with drag physics, infinite loop, autoplay,
+ * pagination dots, and full keyboard/screen-reader support. All visual
+ * presentation is left to the consumer via data attributes and CSS custom
+ * properties.
+ *
+ * @element faceless-carousel
+ *
+ * @attr {number} items-per-view - Number of slides visible at once (default: 1). Overridden by CSS `--items-per-view`.
+ * @attr {number} gap - Gap between slides in pixels (default: 0). Overridden by CSS `--gap`.
+ * @attr {boolean} loop - Enable infinite loop mode with cloned slides.
+ * @attr {string} peek - Partial next-slide reveal. Accepts `px` or `%` values (e.g. `"60px"`, `"10%"`).
+ * @attr {string} peek-type - Peek rendering mode: `"hard"` (overflow visible) or `"fade"` (gradient mask). Default: `"hard"`.
+ * @attr {boolean} show-dots - Display pagination dot buttons below the carousel.
+ * @attr {boolean} autoplay - Enable automatic slide advancement.
+ * @attr {number} interval - Autoplay interval in milliseconds (default: 3000).
+ * @attr {boolean} mousewheel - Enable horizontal mouse-wheel navigation.
+ * @attr {boolean} hide-play-pause - Visually hide the autoplay play/pause button (still accessible).
+ * @attr {boolean} no-snap - Disable snapping while autoplay is paused.
+ * @attr {number} drag-threshold - Drag sensitivity from 0.0 to 1.0 (default: 0.2).
+ * @attr {string} dot-label - Custom label prefix for dots (default: `"Slide"`).
+ * @attr {number} speed - Continuous scroll speed in px/frame. Only active when set.
+ *
+ * @fires {CustomEvent} slide-change - Fires when the active slide changes. `detail: { index: number, previousIndex: number, total: number }`
+ * @fires {CustomEvent} slidechange - Alias of `slide-change` for frameworks that cannot bind hyphenated event names.
+ * @fires {CustomEvent} drag-start - Fires when a drag gesture begins. `detail: { index: number }`
+ * @fires {CustomEvent} dragstart - Alias of `drag-start`.
+ * @fires {CustomEvent} drag-end - Fires when a drag gesture ends. `detail: { index: number, previousIndex: number }`
+ * @fires {CustomEvent} dragend - Alias of `drag-end`.
+ * @fires {CustomEvent} autoplay-pause - Fires when autoplay pauses. `detail: {}`
+ * @fires {CustomEvent} autoplaypause - Alias of `autoplay-pause`.
+ * @fires {CustomEvent} autoplay-resume - Fires when autoplay resumes. `detail: {}`
+ * @fires {CustomEvent} autoplayresume - Alias of `autoplay-resume`.
+ *
+ * @slot - Default slot for slide elements.
+ *
+ * @csspart viewport - Overflow container that masks slides.
+ * @csspart track - Flex row holding all slides, translated via CSS transform.
+ * @csspart dots-container - Container for pagination dot buttons.
+ * @csspart dot - Individual pagination dot button.
+ * @csspart play-pause - Autoplay play/pause toggle button.
+ *
+ * @cssprop [--items-per-view=1] - Number of visible slides. Supports responsive values via media queries.
+ * @cssprop [--gap=0] - Gap between slides in pixels.
+ * @cssprop [--dot-color=#d1d5db] - Inactive dot color.
+ * @cssprop [--dot-active-color=#3b82f6] - Active dot color.
+ * @cssprop [--dot-size=8px] - Dot diameter.
+ * @cssprop [--dot-active-width=24px] - Active dot width.
+ * @cssprop [--dot-transition=all 0.3s cubic-bezier(0.4, 0, 0.2, 1)] - Dot transition animation.
+ */
 class FacelessCarousel extends BaseElement {
   constructor() {
     super();

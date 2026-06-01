@@ -2,3 +2,7 @@
 /tests
 /types
 /.vite
+package.json
+package-lock.json
+custom-elements.json
+node_modules

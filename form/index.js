@@ -18,6 +18,23 @@ if (template) template.innerHTML = `
 
 const BaseElement = isBrowser ? HTMLElement : class {};
 
+/**
+ * A headless form component that wraps a native `<form>`, collects values from
+ * child `<faceless-input>` and `<faceless-checkbox>` elements, validates on
+ * submit, and dispatches structured events with form data.
+ *
+ * @element faceless-form
+ *
+ * @attr {string} action - Form submission URL.
+ * @attr {string} method - HTTP method (`GET`, `POST`, `PUT`, `DELETE`).
+ * @attr {string} enctype - Content encoding (e.g. `multipart/form-data`).
+ * @attr {string} aria-label - Accessible label for the form region (default: `"Form"`).
+ *
+ * @fires {CustomEvent} form-submit - Fires on form submission. `detail: { valid: boolean, errors: Record<string, string>, values: Record<string, string> }`
+ * @fires {CustomEvent} formsubmit - Alias of `form-submit`.
+ *
+ * @slot - Default slot for form fields and submit button.
+ */
 class FacelessForm extends BaseElement {
   constructor() {
     super();
@@ -361,11 +378,42 @@ class FacelessForm extends BaseElement {
 
 if (isBrowser) customElements.define('faceless-form', FacelessForm);
 
-// ─── FacelessInput ────────────────────────────────────────────────────────────
-// Shortcut companion for <faceless-form>. Renders as a [data-field] wrapper
-// with internal [data-label], [data-input], optional [data-hint], and
-// [data-error] in light DOM — no shadow root needed.
-
+/**
+ * A headless form input companion that renders a `[data-field]` wrapper with
+ * `[data-label]`, `[data-input]`, optional `[data-hint]`, and `[data-error]`
+ * in light DOM. Supports `input`, `textarea`, and `select` elements. Form-
+ * associated via `ElementInternals`.
+ *
+ * @element faceless-input
+ *
+ * @attr {string} name - Input name for FormData collection.
+ * @attr {string} type - Input type: `text`, `email`, `password`, `number`, `date`, `tel`, `url` (default: `"text"`).
+ * @attr {string} element - Element to render: `input`, `textarea`, `select` (default: `"input"`).
+ * @attr {string} label - Field label text.
+ * @attr {string} hint - Optional hint text displayed below the input.
+ * @attr {boolean} required - Mark the field as required.
+ * @attr {string} placeholder - Input placeholder text.
+ * @attr {string} autocomplete - Autocomplete hint (e.g. `"email"`, `"name"`).
+ * @attr {number} minlength - Minimum input length.
+ * @attr {number} maxlength - Maximum input length.
+ * @attr {number} min - Minimum value (for `number`, `date`).
+ * @attr {number} max - Maximum value (for `number`, `date`).
+ * @attr {number} step - Step increment (for `number`, `range`).
+ * @attr {string} pattern - Regex validation pattern.
+ * @attr {number} rows - Number of rows (for `textarea`).
+ * @attr {boolean} disabled - Disable the input.
+ * @attr {string} value - Current input value.
+ * @attr {string} error-required - Custom error message when required field is empty.
+ * @attr {string} error-type - Custom error message for type mismatch.
+ * @attr {string} error-pattern - Custom error message for pattern mismatch.
+ * @attr {string} error-message - Generic custom error message.
+ *
+ * @fires {CustomEvent} input-change - Fires on value change. `detail: { name: string, value: string }`
+ * @fires {CustomEvent} inputchange - Alias of `input-change`.
+ * @fires {Event} change - Native change event (composed, bubbles).
+ * @fires {Event} blur - Native blur event (composed, does not bubble).
+ * @fires {FocusEvent} focusout - Native focusout event (composed, bubbles).
+ */
 class FacelessInput extends BaseElement {
   static formAssociated = true;
 
@@ -679,11 +727,32 @@ class FacelessInput extends BaseElement {
 
 if (isBrowser) customElements.define('faceless-input', FacelessInput);
 
-// ─── FacelessCheckbox ──────────────────────────────────────────────────────────
-// Shortcut companion for <faceless-form>. Renders as a [data-field] wrapper
-// with internal <label> wrapping <input type="checkbox|radio">, optional
-// [data-hint], and [data-error] in light DOM — no shadow root needed.
-
+/**
+ * A headless checkbox/radio companion that renders a `[data-field]` wrapper
+ * with `<label>` wrapping `<input type="checkbox|radio">`, optional
+ * `[data-hint]`, and `[data-error]` in light DOM. Radio buttons with the
+ * same `name` automatically form a group. Form-associated via `ElementInternals`.
+ *
+ * @element faceless-checkbox
+ *
+ * @attr {string} name - Checkbox/radio name for FormData collection.
+ * @attr {string} type - Input type: `checkbox` or `radio` (default: `"checkbox"`).
+ * @attr {string} label - Label text displayed next to the control.
+ * @attr {string} hint - Optional hint text displayed below the control.
+ * @attr {string} value - Submitted value when checked (default: `"on"`).
+ * @attr {boolean} checked - Initial checked state.
+ * @attr {boolean} disabled - Disable the control.
+ * @attr {boolean} required - Mark the control as required.
+ * @attr {string} group - Radio group identifier.
+ * @attr {string} error-required - Custom error message when required but unchecked.
+ * @attr {string} error-message - Generic custom error message.
+ *
+ * @fires {CustomEvent} check-change - Fires on checked state change. `detail: { name: string, value: string, checked: boolean }`
+ * @fires {CustomEvent} checkchange - Alias of `check-change`.
+ * @fires {Event} change - Native change event (composed, bubbles).
+ * @fires {Event} blur - Native blur event (composed, does not bubble).
+ * @fires {FocusEvent} focusout - Native focusout event (composed, bubbles).
+ */
 class FacelessCheckbox extends BaseElement {
   static formAssociated = true;
 

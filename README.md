@@ -23,7 +23,7 @@ There are no default styles to override. The component exposes data attributes (
 > |---|---|
 > | `<faceless-carousel>` | ✅ Production-ready |
 > | `<faceless-accordion>` | 🧪 Experimental |
-> | `<faceless-form>` + `<faceless-input>` | 🧪 Experimental |
+> | `<faceless-form>` + `<faceless-input>` + `<faceless-checkbox>` | 🧪 Experimental |
 >
 > Experimental components are functional and tested, but their API may change before a stable release.
 
@@ -104,7 +104,7 @@ Faceless UI is the right choice when your product has a strong, bespoke design a
 |---|---|---|
 | Carousel | `<faceless-carousel>` | ✅ Production-ready — [docs](./carousel/docs.md) |
 | Accordion | `<faceless-accordion>` | 🧪 Experimental — [docs](./accordion/docs.md) |
-| Form | `<faceless-form>` + `<faceless-input>` | 🧪 Experimental — [docs](./form/docs.md) |
+| Form | `<faceless-form>` + `<faceless-input>` + `<faceless-checkbox>` | 🧪 Experimental — [docs](./form/docs.md) |
 
 ---
 
@@ -254,3 +254,59 @@ Every event fires twice — once with the canonical hyphenated name and once wit
   show-dots
 />
 ```
+
+---
+
+## IDE Autocompletion (Custom Elements Manifest)
+
+Faceless UI ships a [Custom Elements Manifest](https://custom-elements-manifest.open-wc.org/) (`custom-elements.json`) that describes all components, attributes, events, CSS custom properties, slots, and shadow parts in a machine-readable format. IDEs and editor plugins can consume this file to provide autocompletion in HTML templates — including Angular, Vue, Svelte, and plain HTML.
+
+### Setup
+
+Generate the manifest (requires Node.js):
+
+```bash
+npm install
+npm run cem
+```
+
+This reads the JSDoc annotations in the component source files and produces `custom-elements.json` at the project root.
+
+The file `custom-elements-manifest.config.mjs` defines which source files the analyzer scans via `globs`. If the directory structure changes (e.g. components are moved or new directories are added), the globs must be updated to match:
+
+```js
+// custom-elements-manifest.config.mjs
+export default {
+  globs: ['carousel/index.js', 'accordion/index.js', 'form/index.js'],
+  // ...
+};
+```
+
+### VS Code
+
+Install the [Custom Elements Language Server](https://marketplace.visualstudio.com/items?itemName=Matsuuu.custom-elements-language-server-project) extension (`Matsuuu.custom-elements-language-server-project`). It reads `custom-elements.json` automatically via the `customElements` field in `package.json` — no additional configuration required.
+
+After installation, typing `<faceless-` in any HTML context triggers tag completion, and attribute/event suggestions appear inside component tags.
+
+### JetBrains (WebStorm / IntelliJ)
+
+JetBrains IDEs support the [web-types](https://github.com/nickvdyck/web-types) format. Generate `web-types.json` from the CEM using the [`cem-plugin-jet-brains-ide-integration`](https://www.npmjs.com/package/cem-plugin-jet-brains-ide-integration) plugin, then reference it in `package.json`:
+
+```json
+{
+  "web-types": "web-types.json"
+}
+```
+
+### What's in the manifest?
+
+The JSDoc annotations in the component source files are the **single source of truth**. The analyzer extracts:
+
+| JSDoc tag | CEM field | What it describes |
+|---|---|---|
+| `@element` | `tagName` | Custom element tag name |
+| `@attr` | `attributes` | HTML attributes with types and defaults |
+| `@fires` | `events` | Dispatched events with detail payload |
+| `@slot` | `slots` | Available slots |
+| `@csspart` | `cssParts` | Exposed `::part()` selectors |
+| `@cssprop` | `cssProperties` | CSS custom properties with defaults |

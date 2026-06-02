@@ -48,6 +48,168 @@ if (template) template.innerHTML = `
 
 const BaseElement = isBrowser ? HTMLElement : class {};
 
+// ─── FacelessNavItem ──────────────────────────────────────────────────────────
+
+/**
+ * Optional helper element for `<faceless-navigation>`.
+ * Renders an `<a>` or `<button>` toggle and an optional `<ul>` submenu directly
+ * in the light DOM, so the parent navigation can discover and manage them without
+ * any manual `<li>` / `<ul>` boilerplate.
+ *
+ * @element faceless-nav-item
+ *
+ * @attr {string} href - URL for the item. When present an `<a>` is rendered; otherwise a `<button>`.
+ * @attr {string} label - Explicit label text. When omitted, text/inline children are used.
+ * @attr {boolean} disabled - Disables the toggle.
+ *
+ * @csspart toggle - The rendered `<a>` or `<button>` element.
+ * @csspart submenu - The `<ul>` wrapping nested `<faceless-nav-item>` children (only present when children exist).
+ */
+class FacelessNavItem extends BaseElement {
+  static get observedAttributes() { return ['href', 'label', 'disabled']; }
+
+  connectedCallback() {
+    if (!isBrowser) return;
+    this._render();
+  }
+
+  attributeChangedCallback() {
+    if (!isBrowser || !this.isConnected) return;
+    this._render();
+  }
+
+  _render() {
+    const existingToggle = this.querySelector(':scope > [part="toggle"]');
+    const existingSubmenu = this.querySelector(':scope > [part="submenu"]');
+
+    // Rescue label nodes from existing toggle so they are not lost on re-render
+    if (existingToggle && !this.getAttribute('label')) {
+      while (existingToggle.firstChild) {
+        this.insertBefore(existingToggle.firstChild, existingToggle);
+      }
+    }
+
+    // Rescue child nav-items from existing submenu so they survive the remove
+    if (existingSubmenu) {
+      Array.from(existingSubmenu.children)
+        .filter(el => el.tagName === 'FACELESS-NAV-ITEM')
+        .forEach(item => this.appendChild(item));
+    }
+
+    if (existingToggle) existingToggle.remove();
+    if (existingSubmenu) existingSubmenu.remove();
+
+    // Separate child nav-items from label nodes
+    const childNavItems = Array.from(this.children).filter(
+      el => el.tagName === 'FACELESS-NAV-ITEM'
+    );
+    const labelNodes = Array.from(this.childNodes).filter(
+      node => node.nodeType === Node.TEXT_NODE ||
+              (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'FACELESS-NAV-ITEM')
+    );
+
+    // Build toggle element
+    const href = this.getAttribute('href');
+    const toggle = document.createElement(href ? 'a' : 'button');
+    toggle.setAttribute('part', 'toggle');
+    if (href) toggle.setAttribute('href', href);
+    if (this.hasAttribute('disabled')) {
+      toggle.setAttribute('disabled', '');
+      toggle.setAttribute('aria-disabled', 'true');
+    }
+
+    const label = this.getAttribute('label');
+    if (label) {
+      toggle.textContent = label;
+    } else {
+      // Move (not clone) label nodes so the original slot is consumed
+      labelNodes.forEach(node => toggle.appendChild(node));
+    }
+
+    this.insertBefore(toggle, this.firstChild);
+
+    // Build submenu when child nav-items are present
+    if (childNavItems.length > 0) {
+      const ul = document.createElement('ul');
+      ul.setAttribute('part', 'submenu');
+      childNavItems.forEach(item => ul.appendChild(item));
+      this.appendChild(ul);
+    }
+  }
+}
+
+if (isBrowser) customElements.define('faceless-nav-item', FacelessNavItem);
+
+// ─── FacelessNavigation ───────────────────────────────────────────────────────
+
+/**
+ * Zero-dependency, framework-agnostic navigation component.
+ *
+ * Implements the Faceless Component pattern: state, ARIA, and keyboard navigation
+ * are handled by the component; all visual styling is left to the consumer.
+ * Supports three interaction patterns — Disclosure (`desktop`), Disclosure +
+ * Focus Trap (`hamburger`), and full ARIA Menubar (`app-menu`) — switchable at
+ * runtime via attribute or CSS variable.
+ *
+ * ### Markup modes
+ *
+ * **Recommended — `<faceless-nav-item>`:** no `<ul>`, `<li>`, or manual ARIA needed.
+ * The helper element renders the correct `<a>`/`<button>` toggle and `<ul>` submenu
+ * automatically, and the navigation applies the full ARIA pattern on top.
+ *
+ * ```html
+ * <faceless-navigation type="desktop" aria-label="Main">
+ *   <faceless-nav-item href="/home">Home</faceless-nav-item>
+ *   <faceless-nav-item>
+ *     Products
+ *     <faceless-nav-item href="/a">Product A</faceless-nav-item>
+ *   </faceless-nav-item>
+ * </faceless-navigation>
+ * ```
+ *
+ * For `hamburger` and responsive layouts, wrap the items in a `<nav>` so the
+ * overlay has a container to show and hide:
+ *
+ * ```html
+ * <faceless-navigation type="hamburger" aria-label="Menu">
+ *   <nav>
+ *     <faceless-nav-item href="/home">Home</faceless-nav-item>
+ *   </nav>
+ * </faceless-navigation>
+ * ```
+ *
+ * **Alternative — manual `<nav><ul><li>` markup:** fully backwards-compatible.
+ * Auto-detects submenus from nested `<ul>` elements; use `data-toggle` /
+ * `data-submenu` attributes for explicit control.
+ *
+ * ### Warning
+ * Always provide `aria-label` on the host. The component logs a console warning
+ * when it is missing so that multiple navigation landmarks on a page remain
+ * distinguishable for screen reader users.
+ *
+ * @element faceless-navigation
+ *
+ * @attr {desktop|hamburger|app-menu} type - Navigation interaction pattern. Default: `desktop`.
+ * @attr {boolean} hover-open - Open submenus on hover (`desktop` type only).
+ * @attr {number} hover-delay - Delay in ms before hover-open triggers. Default: `200`.
+ * @attr {boolean} close-on-click-outside - Close submenus when clicking outside. Enabled by default.
+ * @attr {string} hamburger-label - Accessible label for the hamburger toggle. Default: `Menu`.
+ *
+ * @fires {CustomEvent} nav-toggle - Submenu opened or closed. `detail: { submenu: HTMLElement, open: boolean, trigger: HTMLElement }`
+ * @fires {CustomEvent} navtoggle - React JSX alias for `nav-toggle`. `detail: { submenu: HTMLElement, open: boolean, trigger: HTMLElement }`
+ * @fires {CustomEvent} nav-type-change - Resolved type changed (e.g. desktop → hamburger on resize). `detail: { type: string, previousType: string }`
+ * @fires {CustomEvent} navtypechange - React JSX alias for `nav-type-change`. `detail: { type: string, previousType: string }`
+ * @fires {CustomEvent} nav-hamburger-toggle - Hamburger overlay opened or closed. `detail: { open: boolean }`
+ * @fires {CustomEvent} navhamburgertoggle - React JSX alias for `nav-hamburger-toggle`. `detail: { open: boolean }`
+ *
+ * @slot - Navigation content. Accepts `<faceless-nav-item>` elements (optionally wrapped in `<nav>`) or a `<nav><ul>` tree.
+ * @slot hamburger-icon - Custom icon for the hamburger toggle button. Default: ☰.
+ *
+ * @cssprop [--nav-type=desktop] - Responsive type-switching via CSS media queries. Accepts `desktop`, `hamburger`, or `app-menu`.
+ * @cssprop [--nav-transition-duration=200ms] - Duration for submenu open/close transitions.
+ *
+ * @csspart hamburger-toggle - The hamburger `<button>` in the Shadow DOM (`hamburger` type only).
+ */
 class FacelessNavigation extends BaseElement {
   constructor() {
     super();
@@ -124,7 +286,7 @@ class FacelessNavigation extends BaseElement {
 
     this.shadowRoot.querySelector('slot:not([name])').addEventListener('slotchange', () => this._init());
 
-    if (this.querySelector('nav') || this.querySelector('ul')) {
+    if (this.querySelector('nav') || this.querySelector('ul') || this.querySelector('faceless-nav-item')) {
       this._init();
     }
   }
@@ -151,7 +313,30 @@ class FacelessNavigation extends BaseElement {
     this.state.tree = [];
     this.state.openSubmenus.clear();
 
+    // Nav-item mode 1: direct <faceless-nav-item> children (no <nav> wrapper)
+    const directNavItems = Array.from(this.children)
+      .filter(el => el.tagName === 'FACELESS-NAV-ITEM');
+
+    if (directNavItems.length > 0) {
+      this.state.tree = this._buildNavItemChildren(directNavItems, null, 0);
+      this._measure();
+      return;
+    }
+
     const nav = this.querySelector('nav');
+
+    // Nav-item mode 2: <faceless-nav-item> children inside <nav> (hamburger, responsive)
+    if (nav) {
+      const navItemsInNav = Array.from(nav.children)
+        .filter(el => el.tagName === 'FACELESS-NAV-ITEM');
+      if (navItemsInNav.length > 0) {
+        this.state.tree = this._buildNavItemChildren(navItemsInNav, null, 0);
+        this._measure();
+        return;
+      }
+    }
+
+    // Legacy mode: <nav><ul> structure (unchanged)
     const rootUl = nav ? nav.querySelector(':scope > ul') : this.querySelector(':scope > ul');
     if (!rootUl) return;
 
@@ -162,7 +347,7 @@ class FacelessNavigation extends BaseElement {
 
   _buildItemTree(ul, parent, depth) {
     const items = [];
-    const lis = Array.from(ul.children).filter(el => el.tagName === 'LI');
+    const lis = Array.from(ul.children).filter(el => el.tagName === 'LI' || el.tagName === 'FACELESS-NAV-ITEM');
 
     lis.forEach(li => {
       if (li.closest('faceless-navigation') !== this) return;
@@ -205,6 +390,31 @@ class FacelessNavigation extends BaseElement {
       items.push(descriptor);
     });
 
+    return items;
+  }
+
+  _buildNavItemChildren(elements, parent, depth) {
+    const items = [];
+    elements.forEach(el => {
+      if (el.closest('faceless-navigation') !== this) return;
+      const descriptor = {
+        el,
+        toggle: el.querySelector(':scope > [part="toggle"]'),
+        submenu: el.querySelector(':scope > [part="submenu"]'),
+        links: Array.from(el.querySelectorAll(':scope > a[part="toggle"]')),
+        parent,
+        children: [],
+        depth,
+        open: false,
+        flatIndex: this.state.flatIndex++,
+      };
+      if (descriptor.submenu) {
+        descriptor.submenu.setAttribute('data-depth', depth);
+        descriptor.children = this._buildItemTree(descriptor.submenu, descriptor, depth + 1);
+      }
+      this.state.items.push(descriptor);
+      items.push(descriptor);
+    });
     return items;
   }
 
@@ -417,6 +627,19 @@ class FacelessNavigation extends BaseElement {
   // ─── App-Menu (Menubar) Pattern ───────────────────────────────────────────
 
   _applyMenubarPattern() {
+    // Nav-item mode
+    if (this.state.items.length > 0 && this.state.items[0].el.tagName === 'FACELESS-NAV-ITEM') {
+      const nav = this.querySelector('nav');
+      const host = nav && Array.from(nav.children).some(el => el.tagName === 'FACELESS-NAV-ITEM')
+        ? nav : this;
+      host.setAttribute('role', 'menubar');
+      this._menubarHost = host;
+      this._applyMenubarRolesNavItems(this.state.tree, true);
+      this._updateRovingTabindex();
+      return;
+    }
+
+    // Legacy mode
     const nav = this.querySelector('nav');
     const rootUl = nav ? nav.querySelector(':scope > ul') : this.querySelector(':scope > ul');
     if (!rootUl) return;
@@ -424,6 +647,46 @@ class FacelessNavigation extends BaseElement {
     rootUl.setAttribute('role', 'menubar');
     this._applyMenubarRoles(rootUl, true);
     this._updateRovingTabindex();
+  }
+
+  _applyMenubarRolesNavItems(descriptors, isRoot) {
+    descriptors.forEach(desc => {
+      if (desc.el.closest('faceless-navigation') !== this) return;
+      desc.el.setAttribute('role', 'none');
+
+      if (desc.toggle) {
+        desc.toggle.setAttribute('role', 'menuitem');
+        desc.toggle.setAttribute('tabindex', '-1');
+      }
+
+      if (desc.toggle && desc.submenu) {
+        desc.toggle.setAttribute('aria-haspopup', 'menu');
+        desc.toggle.setAttribute('aria-expanded', 'false');
+        const submenuId = `fn${this.state.uid}-sub-${desc.flatIndex}`;
+        desc.submenu.setAttribute('id', submenuId);
+        desc.submenu.setAttribute('role', 'menu');
+        desc.toggle.setAttribute('aria-controls', submenuId);
+        this._applyMenubarRolesNavItems(desc.children, false);
+      }
+    });
+  }
+
+  _removeMenubarRolesNavItems(items) {
+    items.forEach(desc => {
+      desc.el.removeAttribute('role');
+      if (desc.toggle) {
+        desc.toggle.removeAttribute('role');
+        desc.toggle.removeAttribute('tabindex');
+        desc.toggle.removeAttribute('aria-haspopup');
+        desc.toggle.removeAttribute('aria-expanded');
+        desc.toggle.removeAttribute('aria-controls');
+      }
+      if (desc.submenu) {
+        desc.submenu.removeAttribute('role');
+        desc.submenu.removeAttribute('id');
+      }
+      if (desc.children.length) this._removeMenubarRolesNavItems(desc.children);
+    });
   }
 
   _applyMenubarRoles(ul, isRoot) {
@@ -460,6 +723,15 @@ class FacelessNavigation extends BaseElement {
   }
 
   _teardownMenubarAria() {
+    // Nav-item mode
+    if (this._menubarHost) {
+      this._menubarHost.removeAttribute('role');
+      this._menubarHost = null;
+      this._removeMenubarRolesNavItems(this.state.items);
+      return;
+    }
+
+    // Legacy mode
     const nav = this.querySelector('nav');
     const rootUl = nav ? nav.querySelector(':scope > ul') : this.querySelector(':scope > ul');
     if (!rootUl) return;
@@ -491,6 +763,12 @@ class FacelessNavigation extends BaseElement {
   }
 
   _getTopLevelMenuitems() {
+    // Nav-item mode
+    if (this.state.tree.length > 0 && this.state.tree[0].el.tagName === 'FACELESS-NAV-ITEM') {
+      return this.state.tree.map(desc => desc.toggle).filter(Boolean);
+    }
+
+    // Legacy mode
     const nav = this.querySelector('nav');
     const rootUl = nav ? nav.querySelector(':scope > ul') : this.querySelector(':scope > ul');
     if (!rootUl) return [];
@@ -501,6 +779,13 @@ class FacelessNavigation extends BaseElement {
   }
 
   _getMenuitemsInMenu(ul) {
+    // Nav-item mode: submenu <ul> contains <faceless-nav-item> children
+    const navItems = Array.from(ul.children).filter(el => el.tagName === 'FACELESS-NAV-ITEM');
+    if (navItems.length > 0) {
+      return navItems.map(item => item.querySelector(':scope > [part="toggle"]')).filter(Boolean);
+    }
+
+    // Legacy mode
     return Array.from(ul.children)
       .filter(li => li.tagName === 'LI' && li.closest('faceless-navigation') === this)
       .map(li => li.querySelector(':scope > a, :scope > button'))

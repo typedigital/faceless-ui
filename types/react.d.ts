@@ -6,6 +6,8 @@ import type {
   FacelessFormElement,
   FacelessInputElement,
   FacelessCheckboxElement,
+  FacelessNavItemElement,
+  FacelessNavigationElement,
   SlideChangeDetail,
   DragStartDetail,
   DragEndDetail,
@@ -13,6 +15,9 @@ import type {
   FormSubmitDetail,
   InputChangeDetail,
   CheckChangeDetail,
+  NavTypeChangeDetail,
+  NavHamburgerToggleDetail,
+  NavToggleDetail,
 } from './index';
 
 type FacelessEventHandler<T> = (event: CustomEvent<T>) => void;
@@ -103,6 +108,25 @@ interface FacelessCheckboxProps extends WebComponentProps<FacelessCheckboxElemen
   ref?: React.Ref<FacelessCheckboxElement>;
 }
 
+interface FacelessNavItemProps extends WebComponentProps<FacelessNavItemElement> {
+  href?: string;
+  label?: string;
+  disabled?: boolean;
+  ref?: React.Ref<FacelessNavItemElement>;
+}
+
+interface FacelessNavigationProps extends WebComponentProps<FacelessNavigationElement> {
+  type?: string;
+  'hover-open'?: boolean;
+  'hover-delay'?: number | string;
+  'close-on-click-outside'?: boolean;
+  'hamburger-label'?: string;
+  onNavTypeChange?: FacelessEventHandler<NavTypeChangeDetail>;
+  onNavHamburgerToggle?: FacelessEventHandler<NavHamburgerToggleDetail>;
+  onNavToggle?: FacelessEventHandler<NavToggleDetail>;
+  ref?: React.Ref<FacelessNavigationElement>;
+}
+
 declare global {
   namespace JSX {
     interface IntrinsicElements {
@@ -111,6 +135,8 @@ declare global {
       'faceless-form': FacelessFormProps;
       'faceless-input': FacelessInputProps;
       'faceless-checkbox': FacelessCheckboxProps;
+      'faceless-nav-item': FacelessNavItemProps;
+      'faceless-navigation': FacelessNavigationProps;
     }
   }
 }

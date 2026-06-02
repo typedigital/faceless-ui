@@ -1,7 +1,7 @@
 // AUTO-GENERATED Do not edit manually.
 
 import { Directive, Input, Output, EventEmitter, HostListener, booleanAttribute, numberAttribute } from '@angular/core';
-import type { SlideChangeDetail, DragStartDetail, DragEndDetail, AccordionToggleDetail, FormSubmitDetail, InputChangeDetail, CheckChangeDetail } from './index';
+import type { SlideChangeDetail, DragStartDetail, DragEndDetail, AccordionToggleDetail, FormSubmitDetail, InputChangeDetail, CheckChangeDetail, NavTypeChangeDetail, NavHamburgerToggleDetail, NavToggleDetail } from './index';
 
 @Directive({ selector: 'faceless-carousel', standalone: true })
 export class FacelessCarouselDirective {
@@ -108,5 +108,31 @@ export class FacelessCheckboxDirective {
   @Output('check-change') checkChange = new EventEmitter<CustomEvent<CheckChangeDetail>>();
   @HostListener('check-change', ['$event'])
   private _onCheckChange(e: CustomEvent<CheckChangeDetail>) { this.checkChange.emit(e); }
+}
+
+@Directive({ selector: 'faceless-nav-item', standalone: true })
+export class FacelessNavItemDirective {
+  @Input() href?: string;
+  @Input() label?: string;
+  @Input({ transform: booleanAttribute }) disabled?: boolean;
+}
+
+@Directive({ selector: 'faceless-navigation', standalone: true })
+export class FacelessNavigationDirective {
+  @Input() type?: string;
+  @Input({ alias: 'hover-open', transform: booleanAttribute }) hoverOpen?: boolean;
+  @Input({ alias: 'hover-delay', transform: numberAttribute }) hoverDelay?: number;
+  @Input({ alias: 'close-on-click-outside', transform: booleanAttribute }) closeOnClickOutside?: boolean;
+  @Input({ alias: 'hamburger-label' }) hamburgerLabel?: string;
+
+  @Output('nav-type-change') navTypeChange = new EventEmitter<CustomEvent<NavTypeChangeDetail>>();
+  @HostListener('nav-type-change', ['$event'])
+  private _onNavTypeChange(e: CustomEvent<NavTypeChangeDetail>) { this.navTypeChange.emit(e); }
+  @Output('nav-hamburger-toggle') navHamburgerToggle = new EventEmitter<CustomEvent<NavHamburgerToggleDetail>>();
+  @HostListener('nav-hamburger-toggle', ['$event'])
+  private _onNavHamburgerToggle(e: CustomEvent<NavHamburgerToggleDetail>) { this.navHamburgerToggle.emit(e); }
+  @Output('nav-toggle') navToggle = new EventEmitter<CustomEvent<NavToggleDetail>>();
+  @HostListener('nav-toggle', ['$event'])
+  private _onNavToggle(e: CustomEvent<NavToggleDetail>) { this.navToggle.emit(e); }
 }
 

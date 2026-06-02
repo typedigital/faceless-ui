@@ -26,29 +26,112 @@ The component uses HTML attributes for configuration. Boolean attributes are ena
 
 ---
 
-## 2. Consumer Markup Convention
+## 2. Consumer Markup
 
-The component uses a hybrid auto-detect + data-attribute system. Wrap your navigation in a `<nav>` element with `<ul>`/`<li>` structure.
+There are two ways to supply navigation items. Both work identically — choose the one that fits your workflow.
 
-### Minimal (auto-detect)
+### Option A: `<faceless-nav-item>` (recommended)
+
+The `<faceless-nav-item>` helper element eliminates `<li>`, `<a>`/`<button>`, and `<ul>` boilerplate. The component renders the correct inner elements and wires them into the navigation automatically.
 
 ```html
-<faceless-navigation aria-label="Main navigation">
-  <nav>
-    <ul>
-      <li><a href="/">Home</a></li>
-      <li><a href="/about">About</a></li>
-    </ul>
-  </nav>
+<faceless-navigation aria-label="Main navigation" type="desktop">
+  <faceless-nav-item href="/">Home</faceless-nav-item>
+  <faceless-nav-item>
+    Products
+    <faceless-nav-item href="/a">Product A</faceless-nav-item>
+    <faceless-nav-item href="/b">Product B</faceless-nav-item>
+  </faceless-nav-item>
+  <faceless-nav-item href="/about">About</faceless-nav-item>
 </faceless-navigation>
 ```
 
-### With Submenus (auto-detect)
+**How it works:** Each `<faceless-nav-item>` renders a `[part="toggle"]` `<a>` (when `href` is set) or `<button>` (when no `href`) as its first child. Nested `<faceless-nav-item>` children are wrapped in a `[part="submenu"]` `<ul>`. Both parts are exposed as CSS parts for styling.
 
-Nested `<ul>` elements inside `<li>` are automatically detected as submenus. The first `<a>` or `<button>` before the nested `<ul>` becomes the toggle.
+**Label resolution order:**
+1. `label` attribute — if present, used verbatim
+2. Text / inline-element children — moved into the toggle
+
+#### `<faceless-nav-item>` API
+
+| Attribute  | Type    | Description                                                                    |
+|------------|---------|--------------------------------------------------------------------------------|
+| `href`     | string  | URL for the item. Renders `<a>` when set, `<button>` when absent.             |
+| `label`    | string  | Explicit label text. Overrides text/inline children.                           |
+| `disabled` | boolean | Disables the toggle (`disabled` + `aria-disabled="true"`).                    |
+
+#### CSS Parts
+
+| Part         | Element                                                  |
+|--------------|----------------------------------------------------------|
+| `::part(toggle)`  | The `<a>` or `<button>` element                   |
+| `::part(submenu)` | The `<ul>` wrapping child nav-items (parent only) |
+
+#### Styling example
+
+```css
+/* Root nav items */
+faceless-navigation[data-type="desktop"] > faceless-nav-item {
+  display: block;
+  position: relative;
+}
+
+faceless-navigation[data-type="desktop"] > faceless-nav-item > [part="toggle"] {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #374151;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Open state */
+faceless-navigation[data-type="desktop"] > faceless-nav-item[data-open] > [part="toggle"] {
+  background: #f3f4f6;
+}
+
+/* Dropdown */
+faceless-navigation[data-type="desktop"] > faceless-nav-item > [part="submenu"] {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  list-style: none;
+  padding: 4px 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+faceless-navigation[data-type="desktop"] > faceless-nav-item > [part="submenu"][data-open] {
+  display: block;
+}
+```
+
+---
+
+### Option B: Manual Markup (`<nav><ul><li>`)
+
+The classic approach using standard HTML. Nested `<ul>` elements inside `<li>` are automatically detected as submenus. The first `<a>` or `<button>` before the nested `<ul>` becomes the toggle.
+
+> **A11y note for manual markup:** `<faceless-nav-item>` handles all ARIA and semantic structure automatically. When writing manual markup, the following responsibilities fall on you:
+>
+> | Responsibility | Why it matters |
+> |---|---|
+> | Use `<a href="…">` for real links | Screen readers and keyboard users expect `<a>` elements to navigate. Do not use `<button>` for items that navigate to a URL. |
+> | Use `<button>` for toggle-only items | Items that only open a submenu (no navigation target) must be `<button>`, not `<a href="#">`. A link with `href="#"` creates a confusing and redundant Tab stop. |
+> | Wrap items in `<ul>` and `<li>` | This provides screen readers with list semantics ("3 items", "item 2 of 3") via `<ul role="list">`. Without this structure, users lose spatial awareness in the menu. |
+> | Wrap everything in `<nav>` | `<nav>` creates a landmark so screen reader users can navigate directly to the navigation and skip it. |
+> | Always provide `aria-label` on the host | Multiple navigation landmarks on a page must be distinguishable — e.g. `aria-label="Main navigation"` vs `aria-label="Footer navigation"`. The component warns in the console if this is missing. |
+>
+> All ARIA state attributes (`aria-expanded`, `aria-controls`, `aria-haspopup`, `role`, `tabindex`, `id` on submenus) are set and managed exclusively by the component. **Do not add these manually** — the component will overwrite or conflict with them.
 
 ```html
-<faceless-navigation aria-label="Main navigation">
+<faceless-navigation aria-label="Main navigation" type="desktop">
   <nav>
     <ul>
       <li><a href="/">Home</a></li>
@@ -56,43 +139,29 @@ Nested `<ul>` elements inside `<li>` are automatically detected as submenus. The
         <a href="/products">Products</a>
         <ul>
           <li><a href="/a">Product A</a></li>
-          <li>
-            <a href="/sub">Sub-Category</a>
-            <ul>
-              <li><a href="/a/1">Item 1</a></li>
-            </ul>
-          </li>
+          <li><a href="/b">Product B</a></li>
         </ul>
       </li>
+      <li><a href="/about">About</a></li>
     </ul>
   </nav>
 </faceless-navigation>
 ```
 
-### Explicit Data Attributes (optional)
-
-For more control, use `data-toggle` and `data-submenu` attributes. These override auto-detection.
+For explicit control, use `data-toggle` and `data-submenu` attributes to override auto-detection:
 
 ```html
-<faceless-navigation aria-label="Main navigation">
-  <nav>
-    <ul>
-      <li><a href="/">Home</a></li>
-      <li>
-        <button data-toggle>Products</button>
-        <ul data-submenu>
-          <li><a href="/a">Product A</a></li>
-        </ul>
-      </li>
-    </ul>
-  </nav>
-</faceless-navigation>
+<li>
+  <button data-toggle>Products</button>
+  <ul data-submenu>
+    <li><a href="/a">Product A</a></li>
+  </ul>
+</li>
 ```
 
-### Auto-Detect Logic
-
+**Auto-detect logic:**
 1. For each `<li>`: find a direct child `<ul>` (or `[data-submenu]`)
-2. If found: the first `<a>` or `<button>` child before the `<ul>` becomes the toggle (or explicit `[data-toggle]`)
+2. If found: the first `<a>` or `<button>` before the `<ul>` becomes the toggle (or explicit `[data-toggle]`)
 3. `[data-toggle]`/`[data-submenu]` always override auto-detection
 
 ---
@@ -138,6 +207,23 @@ The hamburger icon can be replaced via the `hamburger-icon` slot:
 ### App-Menu (Menubar Pattern)
 
 An application-style menubar using the full ARIA Menubar pattern with roving tabindex, arrow-key navigation, Home/End, and character search.
+
+`<faceless-nav-item>` (recommended):
+
+```html
+<faceless-navigation type="app-menu" aria-label="Application menu">
+  <faceless-nav-item>
+    File
+    <faceless-nav-item href="#new">New</faceless-nav-item>
+    <faceless-nav-item href="#open">Open</faceless-nav-item>
+  </faceless-nav-item>
+  <faceless-nav-item href="#help">Help</faceless-nav-item>
+</faceless-navigation>
+```
+
+The component sets `role="menubar"` on the host, `role="none"` on each `<faceless-nav-item>`, and `role="menuitem"` / `aria-haspopup` / roving `tabindex` on each `[part="toggle"]`.
+
+Manual markup (alternative):
 
 ```html
 <faceless-navigation type="app-menu" aria-label="Application menu">
@@ -188,12 +274,12 @@ When the type changes, all ARIA attributes from the previous pattern are cleanly
 
 ## 5. Data Attributes (set by component)
 
-| Attribute           | Element          | Description                          |
-|---------------------|------------------|--------------------------------------|
-| `data-type`         | Host             | Reflects current type                |
-| `data-open`         | `<li>`, toggle, submenu | Styling hook for open submenus  |
-| `data-hamburger-open` | Host           | Hamburger overlay is open            |
-| `data-depth="N"`    | Submenu `<ul>`   | Nesting depth (0-based)              |
+| Attribute           | Element                          | Description                          |
+|---------------------|----------------------------------|--------------------------------------|
+| `data-type`         | Host                             | Reflects current type                |
+| `data-open`         | `<li>`/`<faceless-nav-item>`, toggle, submenu | Styling hook for open submenus |
+| `data-hamburger-open` | Host                           | Hamburger overlay is open            |
+| `data-depth="N"`    | Submenu `<ul>`                   | Nesting depth (0-based)              |
 
 ---
 
@@ -303,7 +389,7 @@ If no `aria-label` is provided on the host, the component logs a console warning
 
 ## 9. Universal Rendering (SSR / SSG / CSR)
 
-`<faceless-navigation>` works in every rendering environment without any configuration.
+`<faceless-navigation>` and `<faceless-nav-item>` work in every rendering environment without any configuration.
 
 | Environment                     | Support                      |
 |---------------------------------|------------------------------|
@@ -312,7 +398,7 @@ If no `aria-label` is provided on the host, the component logs a console warning
 | Server-Side Rendering (SSR)     | Safe — no runtime errors     |
 | Node.js / Deno / Edge Runtimes  | Safe — no runtime errors     |
 
-**How it works:** The component detects whether a browser environment is available via `typeof window !== 'undefined'`. In non-browser contexts, all DOM-dependent lifecycle methods exit immediately and `customElements.define` is skipped. The element tag is preserved in the server-rendered HTML and activates fully once JavaScript runs in the client.
+**How it works:** Both components detect whether a browser environment is available via `typeof window !== 'undefined'`. In non-browser contexts, all DOM-dependent lifecycle methods exit immediately and `customElements.define` is skipped. The element tags are preserved in the server-rendered HTML and activate fully once JavaScript runs in the client.
 
 ---
 
@@ -328,7 +414,7 @@ If no `aria-label` is provided on the host, the component logs a console warning
 
 | Slot                 | Description                       |
 |----------------------|-----------------------------------|
-| (default)            | Navigation content (`<nav>`)      |
+| (default)            | Navigation content                |
 | `hamburger-icon`     | Custom icon for the hamburger toggle (default: ☰) |
 
 ### CSS Hooks (data attributes)
@@ -336,12 +422,12 @@ If no `aria-label` is provided on the host, the component logs a console warning
 Style your navigation using the data attributes set by the component:
 
 ```css
-/* Top-level: desktop horizontal */
+/* Top-level: desktop horizontal (manual markup) */
 faceless-navigation[data-type="desktop"] nav > ul {
   display: flex;
 }
 
-/* Dropdown submenus */
+/* Dropdown submenus (manual markup) */
 faceless-navigation[data-type="desktop"] nav ul ul {
   display: none;
   position: absolute;
@@ -355,7 +441,10 @@ faceless-navigation[data-type="hamburger"] nav { display: none; }
 faceless-navigation[data-hamburger-open] nav { display: block; }
 
 /* Active toggle styling */
-faceless-navigation li[data-open] > a { font-weight: bold; }
+faceless-navigation li[data-open] > a,
+faceless-navigation faceless-nav-item[data-open] > [part="toggle"] {
+  font-weight: bold;
+}
 ```
 
 ---
@@ -376,8 +465,9 @@ faceless-navigation li[data-open] > a { font-weight: bold; }
 
 | Method                       | Purpose                                         |
 |------------------------------|-------------------------------------------------|
-| `_init()`                    | Rebuilds the item tree and applies the current pattern |
-| `_buildItemTree(ul, parent, depth)` | Recursively discovers `<li>` items, auto-detects toggles and submenus, builds descriptor tree |
+| `_init()`                    | Detects markup mode (nav-item vs. legacy), rebuilds the item tree, and applies the current pattern |
+| `_buildItemTree(ul, parent, depth)` | Recursively discovers `<li>` and `<faceless-nav-item>` items, auto-detects toggles and submenus, builds descriptor tree |
+| `_buildNavItemChildren(elements, parent, depth)` | Builds descriptor tree from an array of `<faceless-nav-item>` elements (direct children or children of `<nav>`) |
 | `_resolveType()`             | Resolves active type from attribute, CSS variable, or default |
 | `_measure()`                 | Detects type changes and triggers pattern apply/teardown |
 

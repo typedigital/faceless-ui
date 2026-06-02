@@ -14,9 +14,40 @@
 
     <!-- ─── 1. Desktop Navigation ────────────────────────────────────── -->
     <h2>1. Desktop Navigation</h2>
-    <p>Horizontal nav with dropdown submenus. Click a toggle to open its submenu.</p>
+    <p>Horizontal nav with dropdown submenus using <code>&lt;faceless-nav-item&gt;</code>. Click a toggle to open its submenu.</p>
 
     <faceless-navigation aria-label="Desktop demo" type="desktop" id="demo-desktop">
+        <faceless-nav-item href="#home">Home</faceless-nav-item>
+        <faceless-nav-item>
+            Products
+            <faceless-nav-item href="#product-a">Product A</faceless-nav-item>
+            <faceless-nav-item href="#product-b">Product B</faceless-nav-item>
+            <faceless-nav-item href="#product-c">Product C</faceless-nav-item>
+        </faceless-nav-item>
+        <faceless-nav-item>
+            Services
+            <faceless-nav-item href="#consulting">Consulting</faceless-nav-item>
+            <faceless-nav-item href="#support">Support</faceless-nav-item>
+        </faceless-nav-item>
+        <faceless-nav-item href="#about">About</faceless-nav-item>
+        <faceless-nav-item href="#contact">Contact</faceless-nav-item>
+    </faceless-navigation>
+
+    <!-- ─── 2. Desktop Navigation (manuelles Markup) ──────────────────── -->
+    <h2>2. Desktop Navigation (manuelles Markup)</h2>
+    <p>Dasselbe Ergebnis mit klassischem <code>&lt;nav&gt;&lt;ul&gt;&lt;li&gt;</code> Markup — vollständig rückwärtskompatibel. Beide Varianten sind gleichwertig.</p>
+    <details class="a11y-note">
+        <summary>A11y-Hinweise für manuelles Markup</summary>
+        <ul>
+            <li><strong><code>&lt;a href="…"&gt;</code> vs. <code>&lt;button&gt;</code>:</strong> Verwende <code>&lt;a&gt;</code> für echte Links (Navigation zu einer URL) und <code>&lt;button&gt;</code> für reine Toggle-Elemente ohne Navigationsziel. <code>&lt;a href="#"&gt;</code> als Button-Ersatz erzeugt für Screen-Reader-Nutzer einen verwirrenden Tab-Stop.</li>
+            <li><strong><code>&lt;ul&gt;&lt;li&gt;</code>-Struktur:</strong> Die Listenstruktur vermittelt Screenreadern Kontext ("3 Einträge", "Eintrag 2 von 3"). Ohne sie verlieren Nutzer die räumliche Orientierung im Menü.</li>
+            <li><strong><code>&lt;nav&gt;</code>-Landmark:</strong> Das <code>&lt;nav&gt;</code>-Element erstellt einen Landmark, den Screen-Reader-Nutzer direkt anspringen oder überspringen können.</li>
+            <li><strong><code>aria-label</code> am Host:</strong> Bei mehreren Navigation-Landmarks auf einer Seite muss jeder eindeutig benannt sein (z.B. <code>aria-label="Hauptnavigation"</code>). Die Komponente warnt in der Konsole, wenn dieses Attribut fehlt.</li>
+            <li><strong>Kein manuelles ARIA:</strong> <code>aria-expanded</code>, <code>aria-controls</code>, <code>aria-haspopup</code>, <code>role</code>, <code>tabindex</code> und Submenu-<code>id</code>s werden ausschließlich von der Komponente gesetzt. Diese Attribute nicht manuell hinzufügen.</li>
+        </ul>
+    </details>
+
+    <faceless-navigation aria-label="Desktop manual demo" type="desktop" id="demo-desktop-manual">
         <nav>
             <ul>
                 <li><a href="#home">Home</a></li>
@@ -41,33 +72,58 @@
         </nav>
     </faceless-navigation>
 
-    <!-- ─── 2. Hamburger Navigation ──────────────────────────────────── -->
-    <h2>2. Hamburger Navigation</h2>
-    <p>Mobile-style menu with a hamburger toggle. Click the ☰ button to open the overlay.</p>
+    <!-- ─── 3. Hamburger Navigation ──────────────────────────────────── -->
+    <h2>3. Hamburger Navigation</h2>
+    <p>Mobile-style menu with a hamburger toggle. The <code>&lt;nav&gt;</code> wrapper is kept as the overlay container; <code>&lt;faceless-nav-item&gt;</code> replaces all <code>&lt;ul&gt;&lt;li&gt;</code> boilerplate inside.</p>
 
     <faceless-navigation aria-label="Hamburger demo" type="hamburger" id="demo-hamburger">
         <nav>
-            <ul>
-                <li><a href="#home">Home</a></li>
-                <li>
-                    <a href="#products">Products</a>
-                    <ul>
-                        <li><a href="#product-a">Product A</a></li>
-                        <li><a href="#product-b">Product B</a></li>
-                    </ul>
-                </li>
-                <li><a href="#services">Services</a></li>
-                <li><a href="#about">About</a></li>
-                <li><a href="#contact">Contact</a></li>
-            </ul>
+            <faceless-nav-item href="#home">Home</faceless-nav-item>
+            <faceless-nav-item>
+                Products
+                <faceless-nav-item href="#product-a">Product A</faceless-nav-item>
+                <faceless-nav-item href="#product-b">Product B</faceless-nav-item>
+            </faceless-nav-item>
+            <faceless-nav-item href="#services">Services</faceless-nav-item>
+            <faceless-nav-item href="#about">About</faceless-nav-item>
+            <faceless-nav-item href="#contact">Contact</faceless-nav-item>
         </nav>
     </faceless-navigation>
 
-    <!-- ─── 3. App-Menu Navigation ───────────────────────────────────── -->
-    <h2>3. App-Menu Navigation (Menubar)</h2>
-    <p>Application-style menubar with arrow key navigation, roving tabindex, Home/End, and character search.</p>
+    <!-- ─── 4. App-Menu Navigation ───────────────────────────────────── -->
+    <h2>4. App-Menu Navigation (Menubar)</h2>
+    <p>Application-style menubar with arrow key navigation, roving tabindex, Home/End, and character search. The component sets <code>role="menubar"</code>, <code>role="menu"</code>, <code>role="none"</code>, and <code>role="menuitem"</code> automatically.</p>
 
     <faceless-navigation aria-label="Application menu demo" type="app-menu" id="demo-appmenu">
+        <faceless-nav-item>
+            File
+            <faceless-nav-item href="#new">New</faceless-nav-item>
+            <faceless-nav-item href="#open">Open</faceless-nav-item>
+            <faceless-nav-item href="#save">Save</faceless-nav-item>
+            <faceless-nav-item href="#save-as">Save As…</faceless-nav-item>
+        </faceless-nav-item>
+        <faceless-nav-item>
+            Edit
+            <faceless-nav-item href="#undo">Undo</faceless-nav-item>
+            <faceless-nav-item href="#redo">Redo</faceless-nav-item>
+            <faceless-nav-item href="#cut">Cut</faceless-nav-item>
+            <faceless-nav-item href="#copy">Copy</faceless-nav-item>
+            <faceless-nav-item href="#paste">Paste</faceless-nav-item>
+        </faceless-nav-item>
+        <faceless-nav-item>
+            View
+            <faceless-nav-item href="#zoom-in">Zoom In</faceless-nav-item>
+            <faceless-nav-item href="#zoom-out">Zoom Out</faceless-nav-item>
+            <faceless-nav-item href="#fullscreen">Fullscreen</faceless-nav-item>
+        </faceless-nav-item>
+        <faceless-nav-item href="#help">Help</faceless-nav-item>
+    </faceless-navigation>
+
+    <!-- ─── 5. App-Menu (manuelles Markup) ─────────────────────────── -->
+    <h2>5. App-Menu Navigation (manuelles Markup)</h2>
+    <p>Dieselbe Menubar mit klassischem <code>&lt;nav&gt;&lt;ul&gt;&lt;li&gt;</code> Markup — vollständig rückwärtskompatibel.</p>
+
+    <faceless-navigation aria-label="Application menu manual demo" type="app-menu" id="demo-appmenu-manual">
         <nav>
             <ul>
                 <li>
@@ -102,96 +158,72 @@
         </nav>
     </faceless-navigation>
 
-    <!-- ─── 4. Responsive Navigation ─────────────────────────────────── -->
-    <h2>4. Responsive Navigation</h2>
-    <p>This nav switches between desktop and hamburger based on viewport width (resize the browser below 768px). Uses <code>--nav-type</code> CSS variable with a media query.</p>
+    <!-- ─── 6. Responsive Navigation ─────────────────────────────────── -->
+    <h2>6. Responsive Navigation</h2>
+    <p>Switches between desktop and hamburger below 768px. The <code>&lt;nav&gt;</code> wrapper is required so the hamburger overlay can show/hide it. Resize the browser to test.</p>
 
     <faceless-navigation aria-label="Responsive demo" id="demo-responsive" class="responsive-nav">
         <nav>
-            <ul>
-                <li><a href="#home">Home</a></li>
-                <li>
-                    <a href="#products">Products</a>
-                    <ul>
-                        <li><a href="#product-a">Product A</a></li>
-                        <li><a href="#product-b">Product B</a></li>
-                    </ul>
-                </li>
-                <li><a href="#about">About</a></li>
-                <li><a href="#contact">Contact</a></li>
-            </ul>
+            <faceless-nav-item href="#home">Home</faceless-nav-item>
+            <faceless-nav-item>
+                Products
+                <faceless-nav-item href="#product-a">Product A</faceless-nav-item>
+                <faceless-nav-item href="#product-b">Product B</faceless-nav-item>
+            </faceless-nav-item>
+            <faceless-nav-item href="#about">About</faceless-nav-item>
+            <faceless-nav-item href="#contact">Contact</faceless-nav-item>
         </nav>
     </faceless-navigation>
 
-    <!-- ─── 5. Deep Nesting ──────────────────────────────────────────── -->
-    <h2>5. Deep Nesting (3+ levels)</h2>
-    <p>Submenus nested three levels deep.</p>
+    <!-- ─── 7. Deep Nesting ──────────────────────────────────────────── -->
+    <h2>7. Deep Nesting (3+ levels)</h2>
+    <p>Submenus nested three levels deep using <code>&lt;faceless-nav-item&gt;</code>.</p>
 
     <faceless-navigation aria-label="Deep nesting demo" type="desktop" id="demo-deep">
-        <nav>
-            <ul>
-                <li><a href="#home">Home</a></li>
-                <li>
-                    <a href="#categories">Categories</a>
-                    <ul>
-                        <li>
-                            <a href="#electronics">Electronics</a>
-                            <ul>
-                                <li>
-                                    <a href="#phones">Phones</a>
-                                    <ul>
-                                        <li><a href="#android">Android</a></li>
-                                        <li><a href="#ios">iOS</a></li>
-                                    </ul>
-                                </li>
-                                <li><a href="#laptops">Laptops</a></li>
-                                <li><a href="#tablets">Tablets</a></li>
-                            </ul>
-                        </li>
-                        <li>
-                            <a href="#clothing">Clothing</a>
-                            <ul>
-                                <li><a href="#mens">Men's</a></li>
-                                <li><a href="#womens">Women's</a></li>
-                            </ul>
-                        </li>
-                    </ul>
-                </li>
-                <li><a href="#about">About</a></li>
-            </ul>
-        </nav>
+        <faceless-nav-item href="#home">Home</faceless-nav-item>
+        <faceless-nav-item>
+            Categories
+            <faceless-nav-item>
+                Electronics
+                <faceless-nav-item>
+                    Phones
+                    <faceless-nav-item href="#android">Android</faceless-nav-item>
+                    <faceless-nav-item href="#ios">iOS</faceless-nav-item>
+                </faceless-nav-item>
+                <faceless-nav-item href="#laptops">Laptops</faceless-nav-item>
+                <faceless-nav-item href="#tablets">Tablets</faceless-nav-item>
+            </faceless-nav-item>
+            <faceless-nav-item>
+                Clothing
+                <faceless-nav-item href="#mens">Men's</faceless-nav-item>
+                <faceless-nav-item href="#womens">Women's</faceless-nav-item>
+            </faceless-nav-item>
+        </faceless-nav-item>
+        <faceless-nav-item href="#about">About</faceless-nav-item>
     </faceless-navigation>
 
-    <!-- ─── 6. Hover-Open ────────────────────────────────────────────── -->
-    <h2>6. Hover-Open</h2>
+    <!-- ─── 8. Hover-Open ────────────────────────────────────────────── -->
+    <h2>8. Hover-Open</h2>
     <p>Desktop navigation with <code>hover-open</code> attribute. Hover over items with submenus to open them.</p>
 
     <faceless-navigation aria-label="Hover demo" type="desktop" hover-open hover-delay="150" id="demo-hover">
-        <nav>
-            <ul>
-                <li><a href="#home">Home</a></li>
-                <li>
-                    <a href="#products">Products</a>
-                    <ul>
-                        <li><a href="#product-a">Product A</a></li>
-                        <li><a href="#product-b">Product B</a></li>
-                        <li><a href="#product-c">Product C</a></li>
-                    </ul>
-                </li>
-                <li>
-                    <a href="#services">Services</a>
-                    <ul>
-                        <li><a href="#consulting">Consulting</a></li>
-                        <li><a href="#support">Support</a></li>
-                    </ul>
-                </li>
-                <li><a href="#about">About</a></li>
-            </ul>
-        </nav>
+        <faceless-nav-item href="#home">Home</faceless-nav-item>
+        <faceless-nav-item>
+            Products
+            <faceless-nav-item href="#product-a">Product A</faceless-nav-item>
+            <faceless-nav-item href="#product-b">Product B</faceless-nav-item>
+            <faceless-nav-item href="#product-c">Product C</faceless-nav-item>
+        </faceless-nav-item>
+        <faceless-nav-item>
+            Services
+            <faceless-nav-item href="#consulting">Consulting</faceless-nav-item>
+            <faceless-nav-item href="#support">Support</faceless-nav-item>
+        </faceless-nav-item>
+        <faceless-nav-item href="#about">About</faceless-nav-item>
     </faceless-navigation>
 
-    <!-- ─── 7. API Demo ──────────────────────────────────────────────── -->
-    <h2>7. API Demo</h2>
+    <!-- ─── 9. API Demo ──────────────────────────────────────────────── -->
+    <h2>9. API Demo</h2>
     <p>Control the navigation programmatically using the public API.</p>
 
     <div class="api-controls">
@@ -201,26 +233,18 @@
     </div>
 
     <faceless-navigation aria-label="API demo" type="desktop" id="demo-api">
-        <nav>
-            <ul>
-                <li><a href="#home">Home</a></li>
-                <li>
-                    <a href="#products">Products</a>
-                    <ul>
-                        <li><a href="#product-a">Product A</a></li>
-                        <li><a href="#product-b">Product B</a></li>
-                    </ul>
-                </li>
-                <li>
-                    <a href="#services">Services</a>
-                    <ul>
-                        <li><a href="#consulting">Consulting</a></li>
-                        <li><a href="#support">Support</a></li>
-                    </ul>
-                </li>
-                <li><a href="#about">About</a></li>
-            </ul>
-        </nav>
+        <faceless-nav-item href="#home">Home</faceless-nav-item>
+        <faceless-nav-item>
+            Products
+            <faceless-nav-item href="#product-a">Product A</faceless-nav-item>
+            <faceless-nav-item href="#product-b">Product B</faceless-nav-item>
+        </faceless-nav-item>
+        <faceless-nav-item>
+            Services
+            <faceless-nav-item href="#consulting">Consulting</faceless-nav-item>
+            <faceless-nav-item href="#support">Support</faceless-nav-item>
+        </faceless-nav-item>
+        <faceless-nav-item href="#about">About</faceless-nav-item>
     </faceless-navigation>
 
     <!-- Event log -->

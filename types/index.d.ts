@@ -9,6 +9,9 @@ export interface AccordionToggleDetail { index: number; item: HTMLElement; open:
 export interface FormSubmitDetail { valid: boolean; errors: Record<string, string>; values: Record<string, string>; }
 export interface InputChangeDetail { name: string; value: string; }
 export interface CheckChangeDetail { name: string; value: string; checked: boolean; }
+export interface NavTypeChangeDetail { type: string; previousType: string; }
+export interface NavHamburgerToggleDetail { open: boolean; }
+export interface NavToggleDetail { submenu: HTMLElement; open: boolean; trigger: HTMLElement; }
 
 // ─── Element Interfaces ────────────────────────────────────────────────────────
 
@@ -95,6 +98,27 @@ export interface FacelessCheckboxElement extends HTMLElement {
   errorMessage: string;
 }
 
+export interface FacelessNavItemElement extends HTMLElement {
+  href: string;
+  label: string;
+  disabled: boolean;
+}
+
+export interface FacelessNavigationElement extends HTMLElement {
+  type: string;
+  hoverOpen: boolean;
+  hoverDelay: number;
+  closeOnClickOutside: boolean;
+  hamburgerLabel: string;
+  readonly currentType: string;
+  openHamburger(): void;
+  closeHamburger(): void;
+  toggleHamburger(): void;
+  open(toggleOrIndex: any): void;
+  close(toggleOrIndex: any): void;
+  closeAll(): void;
+}
+
 // ─── Global Augmentations ──────────────────────────────────────────────────────
 
 declare global {
@@ -104,6 +128,8 @@ declare global {
     'faceless-form': FacelessFormElement;
     'faceless-input': FacelessInputElement;
     'faceless-checkbox': FacelessCheckboxElement;
+    'faceless-nav-item': FacelessNavItemElement;
+    'faceless-navigation': FacelessNavigationElement;
   }
 
   interface HTMLElementEventMap {
@@ -125,5 +151,11 @@ declare global {
     'inputchange': CustomEvent<InputChangeDetail>;
     'check-change': CustomEvent<CheckChangeDetail>;
     'checkchange': CustomEvent<CheckChangeDetail>;
+    'nav-type-change': CustomEvent<NavTypeChangeDetail>;
+    'navtypechange': CustomEvent<NavTypeChangeDetail>;
+    'nav-hamburger-toggle': CustomEvent<NavHamburgerToggleDetail>;
+    'navhamburgertoggle': CustomEvent<NavHamburgerToggleDetail>;
+    'nav-toggle': CustomEvent<NavToggleDetail>;
+    'navtoggle': CustomEvent<NavToggleDetail>;
   }
 }

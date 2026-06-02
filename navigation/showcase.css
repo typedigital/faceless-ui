@@ -359,6 +359,364 @@ faceless-navigation[data-type="app-menu"] nav ul ul li button:focus-visible {
     background: #2d2d4a;
 }
 
+/* ─── A11y Note ─────────────────────────────────────────────────────────── */
+
+.a11y-note {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #374151;
+}
+
+.a11y-note summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #92400e;
+    user-select: none;
+}
+
+.a11y-note ul {
+    margin-top: 10px;
+    padding-left: 20px;
+    list-style: disc;
+}
+
+.a11y-note li {
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+/* ─── Nav-Item Component Base ───────────────────────────────────────────── */
+
+faceless-nav-item {
+    display: contents;
+}
+
+/* ─── Nav-Item: Desktop Pattern ─────────────────────────────────────────── */
+
+/* Flex container — direct children (no <nav> wrapper) */
+faceless-navigation[data-type="desktop"]:has(> faceless-nav-item) {
+    display: flex;
+    align-items: center;
+}
+
+/* Flex container — nav-items inside <nav> (responsive demo in desktop mode) */
+faceless-navigation[data-type="desktop"] nav:has(> faceless-nav-item) {
+    display: flex;
+    align-items: center;
+}
+
+/* Root item wrapper */
+faceless-navigation[data-type="desktop"] > faceless-nav-item,
+faceless-navigation[data-type="desktop"] nav > faceless-nav-item {
+    display: block;
+    position: relative;
+}
+
+/* Root toggle */
+faceless-navigation[data-type="desktop"] > faceless-nav-item > [part="toggle"],
+faceless-navigation[data-type="desktop"] nav > faceless-nav-item > [part="toggle"] {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+    text-decoration: none;
+}
+
+faceless-navigation[data-type="desktop"] > faceless-nav-item > [part="toggle"]:hover,
+faceless-navigation[data-type="desktop"] nav > faceless-nav-item > [part="toggle"]:hover,
+faceless-navigation[data-type="desktop"] > faceless-nav-item[data-open] > [part="toggle"],
+faceless-navigation[data-type="desktop"] nav > faceless-nav-item[data-open] > [part="toggle"] {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+/* Root dropdown submenu */
+faceless-navigation[data-type="desktop"] > faceless-nav-item > [part="submenu"],
+faceless-navigation[data-type="desktop"] nav > faceless-nav-item > [part="submenu"] {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    min-width: 180px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+faceless-navigation[data-type="desktop"] > faceless-nav-item > [part="submenu"][data-open],
+faceless-navigation[data-type="desktop"] nav > faceless-nav-item > [part="submenu"][data-open] {
+    display: block;
+}
+
+/* Nested item wrapper (any depth) */
+faceless-navigation[data-type="desktop"] [part="submenu"] > faceless-nav-item {
+    display: block;
+    position: relative;
+}
+
+/* Nested toggle (any depth) */
+faceless-navigation[data-type="desktop"] [part="submenu"] > faceless-nav-item > [part="toggle"] {
+    display: block;
+    padding: 8px 16px;
+    font-size: 14px;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.15s;
+    text-decoration: none;
+}
+
+faceless-navigation[data-type="desktop"] [part="submenu"] > faceless-nav-item > [part="toggle"]:hover,
+faceless-navigation[data-type="desktop"] [part="submenu"] > faceless-nav-item[data-open] > [part="toggle"] {
+    background: #f3f4f6;
+}
+
+/* Nested sub-submenu (right-opening, any depth) */
+faceless-navigation[data-type="desktop"] [part="submenu"] > faceless-nav-item > [part="submenu"] {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 100%;
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    min-width: 180px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 101;
+}
+
+faceless-navigation[data-type="desktop"] [part="submenu"] > faceless-nav-item > [part="submenu"][data-open] {
+    display: block;
+}
+
+/* Arrow indicators */
+faceless-navigation[data-type="desktop"] > faceless-nav-item > [part="toggle"][aria-expanded]::after,
+faceless-navigation[data-type="desktop"] nav > faceless-nav-item > [part="toggle"][aria-expanded]::after {
+    content: '▾';
+    margin-left: 6px;
+    font-size: 10px;
+    opacity: 0.5;
+}
+
+faceless-navigation[data-type="desktop"] [part="submenu"] > faceless-nav-item > [part="toggle"][aria-expanded]::after {
+    content: '▸';
+    margin-left: auto;
+    padding-left: 8px;
+    font-size: 10px;
+    opacity: 0.5;
+}
+
+/* ─── Nav-Item: Hamburger Pattern ───────────────────────────────────────── */
+
+/* Item wrapper inside nav */
+faceless-navigation[data-type="hamburger"] nav > faceless-nav-item {
+    display: block;
+    position: relative;
+}
+
+/* Toggle */
+faceless-navigation[data-type="hamburger"] nav > faceless-nav-item > [part="toggle"] {
+    display: block;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.15s;
+    text-decoration: none;
+}
+
+faceless-navigation[data-type="hamburger"] nav > faceless-nav-item > [part="toggle"]:hover {
+    background: #f3f4f6;
+}
+
+faceless-navigation[data-type="hamburger"] nav > faceless-nav-item[data-open] > [part="toggle"] {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Inline submenu (indented, no absolute positioning) */
+faceless-navigation[data-type="hamburger"] nav > faceless-nav-item > [part="submenu"] {
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding-left: 16px;
+}
+
+faceless-navigation[data-type="hamburger"] nav > faceless-nav-item > [part="submenu"][data-open] {
+    display: block;
+}
+
+/* Nested items */
+faceless-navigation[data-type="hamburger"] nav [part="submenu"] > faceless-nav-item {
+    display: block;
+}
+
+faceless-navigation[data-type="hamburger"] nav [part="submenu"] > faceless-nav-item > [part="toggle"] {
+    display: block;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.15s;
+    text-decoration: none;
+}
+
+faceless-navigation[data-type="hamburger"] nav [part="submenu"] > faceless-nav-item > [part="toggle"]:hover {
+    background: #f3f4f6;
+}
+
+/* ─── Nav-Item: App-Menu (Menubar) Pattern ──────────────────────────────── */
+
+/* Flex container */
+faceless-navigation[data-type="app-menu"]:has(> faceless-nav-item) {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+/* Root item wrapper */
+faceless-navigation[data-type="app-menu"] > faceless-nav-item {
+    display: block;
+    position: relative;
+}
+
+/* Root toggle */
+faceless-navigation[data-type="app-menu"] > faceless-nav-item > [part="toggle"] {
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+faceless-navigation[data-type="app-menu"] > faceless-nav-item > [part="toggle"]:hover,
+faceless-navigation[data-type="app-menu"] > faceless-nav-item[data-open] > [part="toggle"] {
+    background: #e9ecef;
+    border-radius: 4px;
+}
+
+faceless-navigation[data-type="app-menu"] > faceless-nav-item > [part="toggle"]:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+    border-radius: 4px;
+}
+
+/* Root dropdown */
+faceless-navigation[data-type="app-menu"] > faceless-nav-item > [part="submenu"] {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    min-width: 160px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+faceless-navigation[data-type="app-menu"] > faceless-nav-item > [part="submenu"][data-open] {
+    display: block;
+}
+
+/* Nested items (any depth) */
+faceless-navigation[data-type="app-menu"] [part="submenu"] > faceless-nav-item {
+    display: block;
+    position: relative;
+}
+
+faceless-navigation[data-type="app-menu"] [part="submenu"] > faceless-nav-item > [part="toggle"] {
+    display: block;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: #374151;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.15s;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+faceless-navigation[data-type="app-menu"] [part="submenu"] > faceless-nav-item > [part="toggle"]:hover {
+    background: #f3f4f6;
+}
+
+faceless-navigation[data-type="app-menu"] [part="submenu"] > faceless-nav-item > [part="toggle"]:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+    background: #f3f4f6;
+}
+
+/* Sub-submenu (right-opening) */
+faceless-navigation[data-type="app-menu"] [part="submenu"] > faceless-nav-item > [part="submenu"] {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 100%;
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    min-width: 160px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 101;
+}
+
+faceless-navigation[data-type="app-menu"] [part="submenu"] > faceless-nav-item > [part="submenu"][data-open] {
+    display: block;
+}
+
 /* ─── Focus Styles ──────────────────────────────────────────────────────── */
 
 faceless-navigation a:focus-visible,

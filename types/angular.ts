@@ -54,6 +54,8 @@ export class FacelessFormDirective {
   @Input() action?: string;
   @Input() method?: string;
   @Input() enctype?: string;
+  @Input({ alias: 'announce-errors' }) announceErrors?: string;
+  @Input({ alias: 'announce-cleared' }) announceCleared?: string;
 
   @Output('form-submit') formSubmit = new EventEmitter<CustomEvent<FormSubmitDetail>>();
   @HostListener('form-submit', ['$event'])

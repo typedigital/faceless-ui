@@ -55,6 +55,8 @@ interface FacelessFormProps extends WebComponentProps<FacelessFormElement> {
   action?: string;
   method?: string;
   enctype?: string;
+  'announce-errors'?: string;
+  'announce-cleared'?: string;
   onFormSubmit?: FacelessEventHandler<FormSubmitDetail>;
   ref?: React.Ref<FacelessFormElement>;
 }

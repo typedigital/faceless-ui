@@ -46,7 +46,9 @@ export interface FacelessFormElement extends HTMLElement {
   action: string;
   method: string;
   enctype: string;
-  setError(fieldId: any, message: any): void;
+  announceErrors: string;
+  announceCleared: string;
+  setError(fieldId: any, message: any, silent?: boolean): void;
   clearError(fieldId: any): void;
   setErrors(errorsObj: any): void;
   clearErrors(): void;

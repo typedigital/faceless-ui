@@ -22,6 +22,11 @@ if (template) template.innerHTML = `
     min-height: 44px;
   }
   :host([data-type="hamburger"]) .hamburger-toggle { display: inline-flex; }
+  .hamburger-toggle:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
   .sr-announcer {
     position: absolute;
     width: 1px;
@@ -72,11 +77,15 @@ class FacelessNavigation extends BaseElement {
   }
 
   static get observedAttributes() {
-    return ['type', 'hover-open', 'hover-delay', 'close-on-click-outside'];
+    return ['type', 'hover-open', 'hover-delay', 'close-on-click-outside', 'hamburger-label'];
   }
 
-  attributeChangedCallback() {
+  attributeChangedCallback(name) {
     if (!isBrowser || !this.isConnected) return;
+    if (name === 'hamburger-label' && this.hamburgerToggle) {
+      this.hamburgerToggle.setAttribute('aria-label', this.getAttribute('hamburger-label') || 'Menu');
+      return;
+    }
     this._measure();
   }
 
@@ -85,6 +94,9 @@ class FacelessNavigation extends BaseElement {
 
     this.hamburgerToggle = this.shadowRoot.querySelector('.hamburger-toggle');
     this.srAnnouncer = this.shadowRoot.querySelector('.sr-announcer');
+
+    const hamburgerLabel = this.getAttribute('hamburger-label');
+    if (hamburgerLabel) this.hamburgerToggle.setAttribute('aria-label', hamburgerLabel);
 
     if (!this.hasAttribute('aria-label')) {
       console.warn(`<faceless-navigation${this.id ? ` id="${this.id}"` : ''}> is missing an aria-label. Provide a descriptive label, e.g. aria-label="Main navigation".`);
@@ -128,6 +140,12 @@ class FacelessNavigation extends BaseElement {
   // ─── Initialization ──────────────────────────────────────────────────────
 
   _init() {
+    // Teardown before rebuild so _measure() re-enters the first-run branch
+    // and _applyPattern() (including _setupHover) is always called on fresh descriptors
+    if (this.hasAttribute('data-type')) {
+      this._teardownPattern();
+    }
+
     this.state.flatIndex = 0;
     this.state.items = [];
     this.state.tree = [];
@@ -251,6 +269,9 @@ class FacelessNavigation extends BaseElement {
     // Teardown disclosure (desktop + hamburger)
     if (type === 'desktop' || type === 'hamburger') {
       this.state.items.forEach(desc => {
+        // Remove hover listeners before descriptors are discarded
+        if (desc._hoverEnter) desc.el.removeEventListener('mouseenter', desc._hoverEnter);
+        if (desc._hoverLeave) desc.el.removeEventListener('mouseleave', desc._hoverLeave);
         if (desc.toggle) {
           desc.toggle.removeAttribute('aria-expanded');
           desc.toggle.removeAttribute('aria-controls');
@@ -339,7 +360,10 @@ class FacelessNavigation extends BaseElement {
     this.hamburgerToggle.setAttribute('aria-expanded', 'true');
     this._activateFocusTrap();
 
-    if (this.srAnnouncer) this.srAnnouncer.textContent = 'Navigation menu opened';
+    this._announce('Navigation menu opened');
+
+    const firstFocusable = this._getFocusTrapElements()[0];
+    if (firstFocusable) firstFocusable.focus();
 
     this.dispatchEvent(new CustomEvent('nav-hamburger-toggle', {
       bubbles: true, composed: true,
@@ -357,7 +381,7 @@ class FacelessNavigation extends BaseElement {
     this.hamburgerToggle.setAttribute('aria-expanded', 'false');
     this._deactivateFocusTrap();
 
-    if (this.srAnnouncer && !silent) this.srAnnouncer.textContent = 'Navigation menu closed';
+    if (!silent) this._announce('Navigation menu closed');
 
     if (!silent) {
       this.dispatchEvent(new CustomEvent('nav-hamburger-toggle', {
@@ -423,7 +447,7 @@ class FacelessNavigation extends BaseElement {
       }
 
       if (desc.toggle && desc.submenu) {
-        desc.toggle.setAttribute('aria-haspopup', 'true');
+        desc.toggle.setAttribute('aria-haspopup', 'menu');
         desc.toggle.setAttribute('aria-expanded', 'false');
         const submenuId = `fn${this.state.uid}-sub-${desc.flatIndex}`;
         desc.submenu.setAttribute('id', submenuId);
@@ -493,6 +517,14 @@ class FacelessNavigation extends BaseElement {
     });
   }
 
+  // ─── Screen Reader Announcements ──────────────────────────────────────────
+
+  _announce(message) {
+    if (!this.srAnnouncer) return;
+    this.srAnnouncer.textContent = '';
+    this.srAnnouncer.textContent = message;
+  }
+
   // ─── Submenu Open / Close ─────────────────────────────────────────────────
 
   _openSubmenu(desc) {
@@ -507,9 +539,8 @@ class FacelessNavigation extends BaseElement {
     }
     desc.submenu.setAttribute('data-open', '');
 
-    if (this.srAnnouncer) {
-      this.srAnnouncer.textContent = 'Submenu opened';
-    }
+    const openName = desc.toggle ? desc.toggle.textContent.trim() : '';
+    this._announce(openName ? `${openName} submenu opened` : 'Submenu opened');
 
     this.dispatchEvent(new CustomEvent('nav-toggle', {
       bubbles: true, composed: true,
@@ -521,13 +552,17 @@ class FacelessNavigation extends BaseElement {
     }));
   }
 
-  _closeSubmenu(desc) {
+  _closeSubmenu(desc, announce = true) {
     if (!desc || !desc.open) return;
+
+    // Capture focus state before DOM changes
+    const focusInSubmenu = desc.submenu && desc.submenu.contains(document.activeElement);
+
     desc.open = false;
     this.state.openSubmenus.delete(desc);
 
-    // Also close all children
-    desc.children.forEach(child => this._closeSubmenu(child));
+    // Close children silently — parent announcement is sufficient
+    desc.children.forEach(child => this._closeSubmenu(child, false));
 
     desc.el.removeAttribute('data-open');
     if (desc.toggle) {
@@ -535,6 +570,14 @@ class FacelessNavigation extends BaseElement {
       desc.toggle.setAttribute('aria-expanded', 'false');
     }
     if (desc.submenu) desc.submenu.removeAttribute('data-open');
+
+    // Return focus to toggle if it was inside the closing submenu
+    if (focusInSubmenu && desc.toggle) desc.toggle.focus();
+
+    if (announce) {
+      const closeName = desc.toggle ? desc.toggle.textContent.trim() : '';
+      this._announce(closeName ? `${closeName} submenu closed` : 'Submenu closed');
+    }
 
     this.dispatchEvent(new CustomEvent('nav-toggle', {
       bubbles: true, composed: true,
@@ -550,10 +593,10 @@ class FacelessNavigation extends BaseElement {
     if (desc.open) {
       this._closeSubmenu(desc);
     } else {
-      // Close siblings at same depth
+      // Close siblings silently — the open announcement is sufficient context
       const siblings = desc.parent ? desc.parent.children : this.state.tree;
       siblings.forEach(sib => {
-        if (sib !== desc && sib.open) this._closeSubmenu(sib);
+        if (sib !== desc && sib.open) this._closeSubmenu(sib, false);
       });
       this._openSubmenu(desc);
     }
@@ -562,8 +605,15 @@ class FacelessNavigation extends BaseElement {
   // ─── Public API ───────────────────────────────────────────────────────────
 
   open(toggleOrIndex) {
+    this._suppressClickOutside = true;
+    setTimeout(() => { this._suppressClickOutside = false; }, 0);
     const desc = this._resolveDescriptor(toggleOrIndex);
-    if (desc && !desc.open) this._openSubmenu(desc);
+    if (!desc || desc.open) return;
+    const siblings = desc.parent ? desc.parent.children : this.state.tree;
+    siblings.forEach(sib => {
+      if (sib !== desc && sib.open) this._closeSubmenu(sib, false);
+    });
+    this._openSubmenu(desc);
   }
 
   close(toggleOrIndex) {
@@ -573,7 +623,7 @@ class FacelessNavigation extends BaseElement {
 
   closeAll() {
     this.state.items.forEach(desc => {
-      if (desc.open) this._closeSubmenu(desc);
+      if (desc.open) this._closeSubmenu(desc, false);
     });
   }
 
@@ -617,6 +667,7 @@ class FacelessNavigation extends BaseElement {
   }
 
   _onClickOutside(e) {
+    if (this._suppressClickOutside) return;
     if (this.getAttribute('close-on-click-outside') === 'false') return;
     if (this.contains(e.target)) return;
     if (this.shadowRoot.contains(e.target)) return;
@@ -948,7 +999,7 @@ class FacelessNavigation extends BaseElement {
 
   _closeAllMenubarSubmenus() {
     this.state.tree.forEach(desc => {
-      if (desc.open) this._closeSubmenu(desc);
+      if (desc.open) this._closeSubmenu(desc, false);
     });
   }
 

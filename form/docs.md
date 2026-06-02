@@ -405,7 +405,7 @@ document.querySelector('faceless-form').addEventListener('form-submit', (e) => {
 | **2.4.3** Focus Order | DOM order equals visual tab order; no positive `tabindex` values |
 | **2.4.7/13** Focus Visible | `focus-visible` outline 2px solid at ≥3:1 contrast documented in showcase.css |
 | **3.3.1** Error Identification | Errors delivered as text via `[data-error]` + `aria-invalid="true"` |
-| **3.3.2** Labels or Instructions | `aria-required="true"` set on required inputs; visible labels linked via `for`/`id` |
+| **3.3.2** Labels or Instructions | `aria-required="true"` set on required inputs; `data-required` attribute on field wrapper enables visible required indicators via CSS; visible labels linked via `for`/`id` |
 | **3.3.3** Error Suggestion | `data-error-*` attributes support actionable, specific messages |
 | **4.1.2** Name, Role, Value | `aria-invalid`, `aria-required`, `aria-describedby` all managed by component |
 
@@ -413,8 +413,8 @@ document.querySelector('faceless-form').addEventListener('form-submit', (e) => {
 
 | Attribute | Element | Value |
 |---|---|---|
-| `role="region"` | `<faceless-form>` host | Makes host a landmark |
-| `aria-label` | `<faceless-form>` host + `<form>` | Names the landmark; forwarded to `<form>` |
+| `role="form"` (implicit) | `<form>` (inner) | The inner `<form>` with `aria-label` has implicit role `form`, making it a named form landmark; no explicit role is set on the host |
+| `aria-label` | `<form>` (inner) | Names the form landmark; forwarded from the `<faceless-form>` host attribute |
 | `aria-required="true"` | `[data-input]` | Set when `required` attribute is present |
 | `aria-invalid="false"` | `[data-input]` | Default — set during `_init` |
 | `aria-invalid="true"` | `[data-input]` | Set when field has an active error |
@@ -422,6 +422,8 @@ document.querySelector('faceless-form').addEventListener('form-submit', (e) => {
 | `id` | `[data-label]`, `[data-input]`, `[data-hint]`, `[data-error]` | Generated UIDs for ARIA linkage |
 | `for` | `[data-label]` | Linked to `[data-input]` ID |
 | `tabindex="-1"` | `[data-error-summary]` | Allows programmatic focus on the summary |
+| `role="region"` | `[data-error-summary]` | Named region landmark for the error summary |
+| `data-required` | `[data-field]` | Present when the field's input has `required`; CSS hook for visible required indicators |
 
 ### Generated ID format
 
@@ -436,9 +438,12 @@ UIDs are instance-scoped counters, ensuring uniqueness even with multiple `<face
 
 ### Live region
 
-A visually-hidden `aria-live="polite"` element in the shadow DOM announces:
-- `"N Fehler in diesem Formular"` after a failed submit
-- `"Alle Fehler behoben"` when `clearErrors()` is called
+On first `connectedCallback`, the component creates a shared `aria-live="polite"` element with `id="faceless-form-announcer"` and appends it to `document.body`. A single element is shared across all `<faceless-form>` instances on the page. Placing the live region in the light DOM (rather than the shadow DOM) ensures reliable announcements across all major screen reader / browser combinations.
+
+Announcements:
+- The total error count after a failed submit (e.g. `"2 errors in this form"`)
+- Individual field errors when `setError()` is called directly (bypasses count)
+- `"All errors resolved"` when `clearErrors()` is called
 
 The text is set via `requestAnimationFrame` to ensure reliable announcements in all screen readers.
 
@@ -800,34 +805,47 @@ When JavaScript runs in the browser, `connectedCallback` detects the existing `[
 
 Radios with the same `name` form a group. Selecting one automatically unchecks the others.
 
+**Important:** Always wrap radio groups in `<fieldset>` with a `<legend>` so screen readers announce the group label (WCAG 1.3.1). Since all elements live in light DOM, native `<fieldset>`/`<legend>` semantics work without any ARIA workarounds.
+
 ```html
 <faceless-form aria-label="Plan selection">
 
-  <faceless-checkbox
-    name="plan"
-    type="radio"
-    label="Free"
-    value="free"
-    required
-    error-required="Please choose a plan.">
-  </faceless-checkbox>
+  <fieldset>
+    <legend>Choose a plan</legend>
 
-  <faceless-checkbox
-    name="plan"
-    type="radio"
-    label="Pro — $9/month"
-    value="pro">
-  </faceless-checkbox>
+    <faceless-checkbox
+      name="plan"
+      type="radio"
+      label="Free"
+      value="free"
+      required
+      error-required="Please choose a plan.">
+    </faceless-checkbox>
 
-  <faceless-checkbox
-    name="plan"
-    type="radio"
-    label="Enterprise — $29/month"
-    value="enterprise">
-  </faceless-checkbox>
+    <faceless-checkbox
+      name="plan"
+      type="radio"
+      label="Pro — $9/month"
+      value="pro">
+    </faceless-checkbox>
+
+    <faceless-checkbox
+      name="plan"
+      type="radio"
+      label="Enterprise — $29/month"
+      value="enterprise">
+    </faceless-checkbox>
+  </fieldset>
 
   <button type="submit">Continue</button>
 </faceless-form>
+```
+
+Reset the default `<fieldset>` browser styles with:
+
+```css
+fieldset { border: none; margin: 0; padding: 0; }
+legend   { font-weight: 600; font-size: 0.875rem; padding: 0; margin-bottom: 8px; }
 ```
 
 ### Generated DOM

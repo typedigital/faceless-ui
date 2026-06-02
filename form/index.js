@@ -1,18 +1,13 @@
 const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
 
 let instanceCount = 0;
+let fieldUid = 0;
 
 const template = isBrowser ? document.createElement('template') : null;
 if (template) template.innerHTML = `
 <style>
   :host { display: block; }
-  .sr-announcer {
-    position: absolute; width: 1px; height: 1px; padding: 0;
-    margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0);
-    white-space: nowrap; border: 0;
-  }
 </style>
-<div class="sr-announcer" aria-live="polite" aria-atomic="true"></div>
 <slot></slot>
 `;
 
@@ -28,7 +23,9 @@ const BaseElement = isBrowser ? HTMLElement : class {};
  * @attr {string} action - Form submission URL.
  * @attr {string} method - HTTP method (`GET`, `POST`, `PUT`, `DELETE`).
  * @attr {string} enctype - Content encoding (e.g. `multipart/form-data`).
- * @attr {string} aria-label - Accessible label for the form region (default: `"Form"`).
+ * @attr {string} aria-label - Accessible label for the form landmark (default: `"Form"`).
+ * @attr {string} announce-errors - Screen reader announcement template for validation errors. Use `{count}` as placeholder (default: `"{count} errors in this form"`).
+ * @attr {string} announce-cleared - Screen reader announcement when all errors are resolved (default: `"All errors resolved"`).
  *
  * @fires {CustomEvent} form-submit - Fires on form submission. `detail: { valid: boolean, errors: Record<string, string>, values: Record<string, string> }`
  * @fires {CustomEvent} formsubmit - Alias of `form-submit`.
@@ -49,6 +46,7 @@ class FacelessForm extends BaseElement {
     };
 
     this._form = null;
+    this._announcer = null;
 
     this._onSubmit = this._onSubmit.bind(this);
     this._onSlotChange = this._onSlotChange.bind(this);
@@ -92,12 +90,13 @@ class FacelessForm extends BaseElement {
   }
 
   static get observedAttributes() {
-    return ['action', 'method', 'enctype', 'aria-label'];
+    return ['action', 'method', 'enctype', 'aria-label', 'announce-errors', 'announce-cleared'];
   }
 
   attributeChangedCallback(name, _oldVal, newVal) {
     if (!isBrowser) return;
     if (!this._form) return;
+    if (name === 'announce-errors' || name === 'announce-cleared') return;
     if (newVal === null) {
       this._form.removeAttribute(name);
     } else {
@@ -125,9 +124,22 @@ class FacelessForm extends BaseElement {
       }
     }
 
-    this.setAttribute('role', 'region');
-    if (!this.hasAttribute('aria-label')) {
-      this.setAttribute('aria-label', 'Form');
+    if (!form.hasAttribute('aria-label')) {
+      form.setAttribute('aria-label', 'Form');
+    }
+
+    // Shared live region in document.body — more reliable than shadow DOM across screen readers
+    if (!this._announcer) {
+      let announcer = document.getElementById('faceless-form-announcer');
+      if (!announcer) {
+        announcer = document.createElement('div');
+        announcer.id = 'faceless-form-announcer';
+        announcer.setAttribute('aria-live', 'polite');
+        announcer.setAttribute('aria-atomic', 'true');
+        announcer.style.cssText = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0';
+        document.body.appendChild(announcer);
+      }
+      this._announcer = announcer;
     }
 
     this.shadowRoot.querySelector('slot').addEventListener('slotchange', this._onSlotChange);
@@ -141,6 +153,7 @@ class FacelessForm extends BaseElement {
     this.removeEventListener('submit', this._onSubmit);
     const slot = this.shadowRoot.querySelector('slot');
     if (slot) slot.removeEventListener('slotchange', this._onSlotChange);
+    this._announcer = null;
   }
 
   _onSlotChange() {
@@ -187,7 +200,7 @@ class FacelessForm extends BaseElement {
       if (hintEl && hintId) hintEl.setAttribute('id', hintId);
       if (errorEl && errorId) errorEl.setAttribute('id', errorId);
 
-      const describedBy = [hintId, errorId].filter(Boolean).join(' ');
+      const describedBy = [errorId, hintId].filter(Boolean).join(' ');
       if (describedBy) {
         inputEl.setAttribute('aria-describedby', describedBy);
       }
@@ -198,6 +211,9 @@ class FacelessForm extends BaseElement {
 
       if (inputEl.hasAttribute('required')) {
         inputEl.setAttribute('aria-required', 'true');
+        fieldEl.setAttribute('data-required', '');
+      } else {
+        fieldEl.removeAttribute('data-required');
       }
 
       inputEl.setAttribute('aria-invalid', 'false');
@@ -216,6 +232,8 @@ class FacelessForm extends BaseElement {
     const summaryEl = this._form.querySelector('[data-error-summary]');
     if (summaryEl) {
       summaryEl.setAttribute('tabindex', '-1');
+      summaryEl.setAttribute('role', 'region');
+      summaryEl.setAttribute('aria-label', 'Error summary');
       summaryEl.hidden = true;
     }
   }
@@ -268,13 +286,17 @@ class FacelessForm extends BaseElement {
     return errors;
   }
 
-  setError(fieldId, message) {
+  setError(fieldId, message, silent = false) {
     const field = this.state.fields.find(f => f.id === fieldId);
     if (!field) return;
     field.error = message;
     field.el.setAttribute('data-invalid', '');
     field.inputEl.setAttribute('aria-invalid', 'true');
     if (field.errorEl) field.errorEl.textContent = message;
+    if (!silent) {
+      const labelText = field.labelEl?.textContent?.trim() || fieldId;
+      this._announce(`${labelText}: ${message}`);
+    }
   }
 
   clearError(fieldId) {
@@ -288,16 +310,14 @@ class FacelessForm extends BaseElement {
 
   setErrors(errorsObj) {
     this.state.fields.forEach(f => this.clearError(f.id));
-    Object.entries(errorsObj).forEach(([id, msg]) => this.setError(id, msg));
+    Object.entries(errorsObj).forEach(([id, msg]) => this.setError(id, msg, true));
     this._updateErrorSummary();
     this._moveFocusToErrors();
 
     const count = Object.keys(errorsObj).length;
-    this._announce(
-      count === 1
-        ? '1 error in this form'
-        : `${count} errors in this form`
-    );
+    const tpl = this.getAttribute('announce-errors')
+      || (count === 1 ? '1 error in this form' : '{count} errors in this form');
+    this._announce(tpl.replace('{count}', count));
   }
 
   clearErrors() {
@@ -307,7 +327,7 @@ class FacelessForm extends BaseElement {
       summaryEl.hidden = true;
       summaryEl.innerHTML = '';
     }
-    this._announce('All errors resolved');
+    this._announce(this.getAttribute('announce-cleared') || 'All errors resolved');
   }
 
   getErrors() {
@@ -367,11 +387,10 @@ class FacelessForm extends BaseElement {
   }
 
   _announce(message) {
-    const announcer = this.shadowRoot.querySelector('.sr-announcer');
-    if (!announcer) return;
-    announcer.textContent = '';
+    if (!this._announcer) return;
+    this._announcer.textContent = '';
     requestAnimationFrame(() => {
-      announcer.textContent = message;
+      this._announcer.textContent = message;
     });
   }
 }
@@ -430,6 +449,8 @@ class FacelessInput extends BaseElement {
   constructor() {
     super();
     if (!isBrowser) return;
+
+    this._uid = fieldUid++;
 
     if (this.attachInternals) {
       this._internals = this.attachInternals();
@@ -534,6 +555,7 @@ class FacelessInput extends BaseElement {
     // SSR path: internal elements already pre-rendered — only sync attributes
     if (this.querySelector('[data-input]')) {
       this._wireAttributes();
+      this._wireAria();
       this._bindControlEvents();
       return;
     }
@@ -627,6 +649,7 @@ class FacelessInput extends BaseElement {
     }
 
     this._wireAttributes();
+    if (name === 'required') this._wireAria();
   }
 
   _buildDOM() {
@@ -670,6 +693,7 @@ class FacelessInput extends BaseElement {
     this.append(...toAppend);
 
     this._wireAttributes();
+    this._wireAria();
     this._bindControlEvents();
   }
 
@@ -723,6 +747,44 @@ class FacelessInput extends BaseElement {
       this.setAttribute('data-field', this.getAttribute('name'));
     }
   }
+
+  _wireAria() {
+    const control = this.querySelector('[data-input]');
+    if (!control) return;
+
+    const labelEl = this.querySelector('[data-label]');
+    const hintEl = this.querySelector('[data-hint]');
+    const errorEl = this.querySelector('[data-error]');
+
+    const base = `fi${this._uid}`;
+    const inputId = `${base}-input`;
+
+    control.setAttribute('id', inputId);
+    if (labelEl) labelEl.setAttribute('for', inputId);
+
+    const hintId = hintEl ? `${base}-hint` : null;
+    const errorId = errorEl ? `${base}-error` : null;
+
+    if (hintEl) hintEl.setAttribute('id', hintId);
+    if (errorEl) errorEl.setAttribute('id', errorId);
+
+    const describedBy = [errorId, hintId].filter(Boolean).join(' ');
+    if (describedBy) {
+      control.setAttribute('aria-describedby', describedBy);
+    }
+
+    if (control.hasAttribute('required')) {
+      control.setAttribute('aria-required', 'true');
+      this.setAttribute('data-required', '');
+    } else {
+      control.removeAttribute('aria-required');
+      this.removeAttribute('data-required');
+    }
+
+    if (!control.hasAttribute('aria-invalid')) {
+      control.setAttribute('aria-invalid', 'false');
+    }
+  }
 }
 
 if (isBrowser) customElements.define('faceless-input', FacelessInput);
@@ -771,6 +833,8 @@ class FacelessCheckbox extends BaseElement {
   constructor() {
     super();
     if (!isBrowser) return;
+
+    this._uid = fieldUid++;
 
     if (this.attachInternals) {
       this._internals = this.attachInternals();
@@ -840,6 +904,7 @@ class FacelessCheckbox extends BaseElement {
 
     if (this.querySelector('[data-input]')) {
       this._wireAttributes();
+      this._wireAria();
       this._bindControlEvents();
       this._syncVisualState();
       return;
@@ -888,6 +953,7 @@ class FacelessCheckbox extends BaseElement {
     this.append(...toAppend);
 
     this._wireAttributes();
+    this._wireAria();
     this._bindControlEvents();
     this._syncVisualState();
   }
@@ -932,6 +998,42 @@ class FacelessCheckbox extends BaseElement {
 
     if (this.hasAttribute('name')) {
       this.setAttribute('data-field', this.getAttribute('name'));
+    }
+  }
+
+  _wireAria() {
+    const control = this.querySelector('[data-input]');
+    if (!control) return;
+
+    const hintEl = this.querySelector('[data-hint]');
+    const errorEl = this.querySelector('[data-error]');
+
+    const base = `fc${this._uid}`;
+    const inputId = `${base}-input`;
+
+    control.setAttribute('id', inputId);
+
+    const hintId = hintEl ? `${base}-hint` : null;
+    const errorId = errorEl ? `${base}-error` : null;
+
+    if (hintEl) hintEl.setAttribute('id', hintId);
+    if (errorEl) errorEl.setAttribute('id', errorId);
+
+    const describedBy = [errorId, hintId].filter(Boolean).join(' ');
+    if (describedBy) {
+      control.setAttribute('aria-describedby', describedBy);
+    }
+
+    if (control.hasAttribute('required')) {
+      control.setAttribute('aria-required', 'true');
+      this.setAttribute('data-required', '');
+    } else {
+      control.removeAttribute('aria-required');
+      this.removeAttribute('data-required');
+    }
+
+    if (!control.hasAttribute('aria-invalid')) {
+      control.setAttribute('aria-invalid', 'false');
     }
   }
 
@@ -1040,6 +1142,7 @@ class FacelessCheckbox extends BaseElement {
     }
 
     this._wireAttributes();
+    if (name === 'required') this._wireAria();
   }
 }
 

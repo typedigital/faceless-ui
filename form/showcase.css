@@ -330,3 +330,20 @@ faceless-checkbox[data-checked] [data-label-text] {
 .radio-group faceless-checkbox {
     margin-bottom: 8px;
 }
+
+/* ─── Fieldset reset for radio/checkbox groups ─── */
+fieldset.radio-group,
+fieldset.checkbox-group {
+    border: none;
+    margin: 0 0 20px;
+    padding: 0;
+}
+
+fieldset.radio-group legend,
+fieldset.checkbox-group legend {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--td-dark-blue);
+    padding: 0;
+    margin-bottom: 8px;
+}

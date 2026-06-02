@@ -83,8 +83,9 @@
     }
 
     /* Das Karussell füllt den Platz zwischen den Buttons */
-    #api-demo {
+    .carousel-wrapper > faceless-carousel {
         flex: 1;
+        min-width: 0;
     }
 
     /* Styling für die runden Pfeil-Buttons */

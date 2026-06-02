@@ -20,6 +20,7 @@ A zero-dependency, framework-agnostic web component that wraps native form contr
 12. [Universal Rendering](#12-universal-rendering)
 13. [Styling & Customization](#13-styling--customization)
 14. [Shortcut: `<faceless-input>`](#14-shortcut-faceless-input)
+15. [Shortcut: `<faceless-checkbox>`](#15-shortcut-faceless-checkbox)
 
 ---
 
@@ -404,7 +405,7 @@ document.querySelector('faceless-form').addEventListener('form-submit', (e) => {
 | **2.4.3** Focus Order | DOM order equals visual tab order; no positive `tabindex` values |
 | **2.4.7/13** Focus Visible | `focus-visible` outline 2px solid at ≥3:1 contrast documented in showcase.css |
 | **3.3.1** Error Identification | Errors delivered as text via `[data-error]` + `aria-invalid="true"` |
-| **3.3.2** Labels or Instructions | `aria-required="true"` set on required inputs; visible labels linked via `for`/`id` |
+| **3.3.2** Labels or Instructions | `aria-required="true"` set on required inputs; `data-required` attribute on field wrapper enables visible required indicators via CSS; visible labels linked via `for`/`id` |
 | **3.3.3** Error Suggestion | `data-error-*` attributes support actionable, specific messages |
 | **4.1.2** Name, Role, Value | `aria-invalid`, `aria-required`, `aria-describedby` all managed by component |
 
@@ -412,8 +413,8 @@ document.querySelector('faceless-form').addEventListener('form-submit', (e) => {
 
 | Attribute | Element | Value |
 |---|---|---|
-| `role="region"` | `<faceless-form>` host | Makes host a landmark |
-| `aria-label` | `<faceless-form>` host + `<form>` | Names the landmark; forwarded to `<form>` |
+| `role="form"` (implicit) | `<form>` (inner) | The inner `<form>` with `aria-label` has implicit role `form`, making it a named form landmark; no explicit role is set on the host |
+| `aria-label` | `<form>` (inner) | Names the form landmark; forwarded from the `<faceless-form>` host attribute |
 | `aria-required="true"` | `[data-input]` | Set when `required` attribute is present |
 | `aria-invalid="false"` | `[data-input]` | Default — set during `_init` |
 | `aria-invalid="true"` | `[data-input]` | Set when field has an active error |
@@ -421,6 +422,8 @@ document.querySelector('faceless-form').addEventListener('form-submit', (e) => {
 | `id` | `[data-label]`, `[data-input]`, `[data-hint]`, `[data-error]` | Generated UIDs for ARIA linkage |
 | `for` | `[data-label]` | Linked to `[data-input]` ID |
 | `tabindex="-1"` | `[data-error-summary]` | Allows programmatic focus on the summary |
+| `role="region"` | `[data-error-summary]` | Named region landmark for the error summary |
+| `data-required` | `[data-field]` | Present when the field's input has `required`; CSS hook for visible required indicators |
 
 ### Generated ID format
 
@@ -435,9 +438,12 @@ UIDs are instance-scoped counters, ensuring uniqueness even with multiple `<face
 
 ### Live region
 
-A visually-hidden `aria-live="polite"` element in the shadow DOM announces:
-- `"N Fehler in diesem Formular"` after a failed submit
-- `"Alle Fehler behoben"` when `clearErrors()` is called
+On first `connectedCallback`, the component creates a shared `aria-live="polite"` element with `id="faceless-form-announcer"` and appends it to `document.body`. A single element is shared across all `<faceless-form>` instances on the page. Placing the live region in the light DOM (rather than the shadow DOM) ensures reliable announcements across all major screen reader / browser combinations.
+
+Announcements:
+- The total error count after a failed submit (e.g. `"2 errors in this form"`)
+- Individual field errors when `setError()` is called directly (bypasses count)
+- `"All errors resolved"` when `clearErrors()` is called
 
 The text is set via `requestAnimationFrame` to ensure reliable announcements in all screen readers.
 
@@ -747,7 +753,6 @@ input.removeAttribute('required');                    // → required removed fr
 
 ### Limitations
 
-- **Checkboxes and radios** require verbose markup. The accessible pattern for these controls wraps the `<input>` inside the `<label>` — a DOM structure `<faceless-input>` does not produce.
 - **`element` changes at runtime** (e.g. from `input` to `textarea`) are not supported after the initial mount. The control tag is fixed at `connectedCallback` time.
 
 ### Universal Rendering (SSR)
@@ -765,3 +770,212 @@ In an SSR context, pre-render the internal light DOM manually:
 ```
 
 When JavaScript runs in the browser, `connectedCallback` detects the existing `[data-input]` child and skips DOM creation — it only calls `_wireAttributes()` to sync `dataset.*` properties that `<faceless-form>` reads during validation.
+
+---
+
+## 15. Shortcut: `<faceless-checkbox>`
+
+`<faceless-checkbox>` is a companion component for checkboxes and radio buttons. Like `<faceless-input>`, it collapses the verbose markup pattern into a single tag while producing the correct accessible DOM structure (input wrapped inside label). It is included in the same `index.js` file.
+
+### When to use it
+
+| Use `<faceless-checkbox>` | Use verbose markup |
+|---|---|
+| Standard checkboxes | Complex checkbox layouts with custom content inside the label |
+| Radio groups | When you need extra elements inside the label wrapper |
+| Terms & conditions, newsletter opt-in | When you need exact control over the generated DOM |
+
+### Minimal example — Checkbox
+
+```html
+<faceless-form aria-label="Settings">
+
+  <faceless-checkbox
+    name="terms"
+    label="I accept the terms and conditions"
+    required
+    error-required="You must accept the terms.">
+  </faceless-checkbox>
+
+  <button type="submit">Submit</button>
+</faceless-form>
+```
+
+### Radio group example
+
+Radios with the same `name` form a group. Selecting one automatically unchecks the others.
+
+**Important:** Always wrap radio groups in `<fieldset>` with a `<legend>` so screen readers announce the group label (WCAG 1.3.1). Since all elements live in light DOM, native `<fieldset>`/`<legend>` semantics work without any ARIA workarounds.
+
+```html
+<faceless-form aria-label="Plan selection">
+
+  <fieldset>
+    <legend>Choose a plan</legend>
+
+    <faceless-checkbox
+      name="plan"
+      type="radio"
+      label="Free"
+      value="free"
+      required
+      error-required="Please choose a plan.">
+    </faceless-checkbox>
+
+    <faceless-checkbox
+      name="plan"
+      type="radio"
+      label="Pro — $9/month"
+      value="pro">
+    </faceless-checkbox>
+
+    <faceless-checkbox
+      name="plan"
+      type="radio"
+      label="Enterprise — $29/month"
+      value="enterprise">
+    </faceless-checkbox>
+  </fieldset>
+
+  <button type="submit">Continue</button>
+</faceless-form>
+```
+
+Reset the default `<fieldset>` browser styles with:
+
+```css
+fieldset { border: none; margin: 0; padding: 0; }
+legend   { font-weight: 600; font-size: 0.875rem; padding: 0; margin-bottom: 8px; }
+```
+
+### Generated DOM
+
+```html
+<faceless-checkbox data-field="terms" name="terms" label="I accept the terms">
+  <!-- Generated light DOM: -->
+  <label data-label>
+    <input type="checkbox" data-input name="terms" value="on" />
+    <span data-label-text>I accept the terms</span>
+  </label>
+  <span data-hint>Optional hint text</span>
+  <span data-error></span>
+</faceless-checkbox>
+```
+
+The `<input>` is **inside** the `<label>` — implicit label association, no `for`/`id` needed.
+
+### Attribute reference
+
+#### Control attributes — forwarded to the internal `<input>`
+
+| Attribute | Forwarded to | Notes |
+|---|---|---|
+| `name` | `[data-input][name]` + `data-field` on host | Required — identifies the field |
+| `type` | `[data-input][type]` | `"checkbox"` (default) or `"radio"` |
+| `value` | `[data-input][value]` | Value sent with the form. Defaults to `"on"` |
+| `checked` | `[data-input].checked` | Boolean attribute — initial checked state |
+| `required` | `[data-input][required]` | Boolean attribute |
+| `disabled` | `[data-input][disabled]` | Boolean attribute |
+
+#### Structural attributes — rendered as light DOM children
+
+| Attribute | Rendered as | Notes |
+|---|---|---|
+| `label` | `<span data-label-text>` inside `<label data-label>` | Label text content |
+| `hint` | `<span data-hint>` | Only created when the attribute is present |
+
+#### Error attributes — forwarded to `host.dataset.*`
+
+| HTML attribute | `dataset` key | Read by `<faceless-form>` as |
+|---|---|---|
+| `error-required` | `errorRequired` | `d.errorRequired` (`valueMissing`) |
+| `error-message` | `errorMessage` | `d.errorMessage` (any other failure) |
+
+### Properties (getter/setter)
+
+| Property | Type | Notes |
+|---|---|---|
+| `name` | `string` | |
+| `type` | `string` | `"checkbox"` or `"radio"` |
+| `label` | `string` | |
+| `hint` | `string \| null` | |
+| `value` | `string` | Defaults to `"on"` |
+| `checked` | `boolean` | Reads from/writes to the internal `<input>` |
+| `disabled` | `boolean` | |
+| `required` | `boolean` | |
+| `group` | `string` | Reserved for future use |
+| `errorRequired` | `string` | |
+| `errorMessage` | `string` | |
+
+### Events
+
+#### `check-change` / `checkchange`
+
+Fired when the checkbox or radio state changes.
+
+| Property | Type | Description |
+|---|---|---|
+| `bubbles` | `true` | Bubbles up the DOM |
+| `composed` | `true` | Crosses shadow DOM boundaries |
+| `detail.name` | `string` | The field name |
+| `detail.value` | `string` | The field value |
+| `detail.checked` | `boolean` | Whether the control is checked |
+
+```js
+document.querySelector('faceless-checkbox').addEventListener('check-change', (e) => {
+  console.log(e.detail.checked); // true or false
+});
+```
+
+#### Native events
+
+| Event | Purpose |
+|---|---|
+| `change` | Native change event — Angular `CheckboxControlValueAccessor` compatibility |
+| `blur` | Fires when focus leaves the component entirely (`composed: true`) |
+| `focusout` | Bubbling focus-out event (`composed: true`) |
+
+### Managed attributes (output)
+
+| Attribute | Element | When present |
+|---|---|---|
+| `data-checked` | `<faceless-checkbox>` host | Control is currently checked |
+| `data-field` | `<faceless-checkbox>` host | Always present — mirrors `name` |
+
+### Radio group behaviour
+
+When `type="radio"`, selecting a radio automatically unchecks all other `<faceless-checkbox>` elements with the same `name` within the nearest `<faceless-form>`, `<form>`, or document. The `data-checked` attribute is kept in sync.
+
+For validation, only one radio in the group needs the `required` attribute — the browser's native constraint validation handles group-level required checks.
+
+### Form-Associated Custom Element
+
+`<faceless-checkbox>` is a form-associated custom element (`static formAssociated = true`). It participates in native `<form>` submission and supports:
+
+- `formResetCallback()` — resets to the initial `checked` state
+- `formDisabledCallback()` — forwards disabled state to the internal input
+
+### Accessibility
+
+- No additional `role` or `aria-checked` needed — the native `<input type="checkbox|radio">` provides its own semantics
+- Label association is implicit via the wrapping `<label>`
+- `required` attribute is forwarded to the internal `<input>`, triggering native screen reader announcements
+- Error messages are linked via `aria-describedby` by `<faceless-form>` during `_init()`
+
+### Universal Rendering (SSR)
+
+`<faceless-checkbox>` is safe to import in Node.js, Deno, and edge runtimes. All DOM access is guarded by the shared `isBrowser` constant.
+
+In an SSR context, pre-render the internal light DOM manually:
+
+```html
+<faceless-checkbox data-field="terms" name="terms" label="I accept the terms">
+  <label data-label>
+    <input data-input type="checkbox" name="terms" value="on" required>
+    <span data-label-text>I accept the terms</span>
+  </label>
+  <span data-error></span>
+</faceless-checkbox>
+```
+
+When JavaScript runs in the browser, `connectedCallback` detects the existing `[data-input]` child and skips DOM creation — it only calls `_wireAttributes()` and `_bindControlEvents()` to sync state.

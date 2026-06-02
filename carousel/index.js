@@ -7,6 +7,7 @@ if (template) template.innerHTML = `
     display: flex;
     flex-direction: column;
     position: relative;
+    min-width: 0;
     --items-per-view: 1;
     --gap: 0px;
     --internal-slide-width: 0px;
@@ -42,11 +43,6 @@ if (template) template.innerHTML = `
     box-sizing: border-box;
     width: var(--internal-slide-width) !important;
     transition: transform 0.5s ease, opacity 0.5s ease !important;
-    interactivity: inert;
-  }
-
-  ::slotted([data-visible]) {
-    interactivity: auto;
   }
 
   ::slotted(:not([data-visible]):not([slot])) {
@@ -143,6 +139,56 @@ if (template) template.innerHTML = `
 
 const BaseElement = isBrowser ? HTMLElement : class {};
 
+/**
+ * A headless carousel component with drag physics, infinite loop, autoplay,
+ * pagination dots, and full keyboard/screen-reader support. All visual
+ * presentation is left to the consumer via data attributes and CSS custom
+ * properties.
+ *
+ * @element faceless-carousel
+ *
+ * @attr {number} items-per-view - Number of slides visible at once (default: 1). Overridden by CSS `--items-per-view`.
+ * @attr {number} gap - Gap between slides in pixels (default: 0). Overridden by CSS `--gap`.
+ * @attr {boolean} loop - Enable infinite loop mode with cloned slides.
+ * @attr {string} peek - Partial next-slide reveal. Accepts `px` or `%` values (e.g. `"60px"`, `"10%"`).
+ * @attr {string} peek-type - Peek rendering mode: `"hard"` (overflow visible) or `"fade"` (gradient mask). Default: `"hard"`.
+ * @attr {boolean} show-dots - Display pagination dot buttons below the carousel.
+ * @attr {boolean} autoplay - Enable automatic slide advancement.
+ * @attr {number} interval - Autoplay interval in milliseconds (default: 3000).
+ * @attr {boolean} mousewheel - Enable horizontal mouse-wheel navigation.
+ * @attr {boolean} hide-play-pause - Visually hide the autoplay play/pause button (still accessible).
+ * @attr {boolean} no-snap - Disable snapping while autoplay is paused.
+ * @attr {number} drag-threshold - Drag sensitivity from 0.0 to 1.0 (default: 0.2).
+ * @attr {string} dot-label - Custom label prefix for dots (default: `"Slide"`).
+ * @attr {number} speed - Continuous scroll speed in px/frame. Only active when set.
+ *
+ * @fires {CustomEvent} slide-change - Fires when the active slide changes. `detail: { index: number, previousIndex: number, total: number }`
+ * @fires {CustomEvent} slidechange - Alias of `slide-change` for frameworks that cannot bind hyphenated event names.
+ * @fires {CustomEvent} drag-start - Fires when a drag gesture begins. `detail: { index: number }`
+ * @fires {CustomEvent} dragstart - Alias of `drag-start`.
+ * @fires {CustomEvent} drag-end - Fires when a drag gesture ends. `detail: { index: number, previousIndex: number }`
+ * @fires {CustomEvent} dragend - Alias of `drag-end`.
+ * @fires {CustomEvent} autoplay-pause - Fires when autoplay pauses. `detail: {}`
+ * @fires {CustomEvent} autoplaypause - Alias of `autoplay-pause`.
+ * @fires {CustomEvent} autoplay-resume - Fires when autoplay resumes. `detail: {}`
+ * @fires {CustomEvent} autoplayresume - Alias of `autoplay-resume`.
+ *
+ * @slot - Default slot for slide elements.
+ *
+ * @csspart viewport - Overflow container that masks slides.
+ * @csspart track - Flex row holding all slides, translated via CSS transform.
+ * @csspart dots-container - Container for pagination dot buttons.
+ * @csspart dot - Individual pagination dot button.
+ * @csspart play-pause - Autoplay play/pause toggle button.
+ *
+ * @cssprop [--items-per-view=1] - Number of visible slides. Supports responsive values via media queries.
+ * @cssprop [--gap=0] - Gap between slides in pixels.
+ * @cssprop [--dot-color=#d1d5db] - Inactive dot color.
+ * @cssprop [--dot-active-color=#3b82f6] - Active dot color.
+ * @cssprop [--dot-size=8px] - Dot diameter.
+ * @cssprop [--dot-active-width=24px] - Active dot width.
+ * @cssprop [--dot-transition=all 0.3s cubic-bezier(0.4, 0, 0.2, 1)] - Dot transition animation.
+ */
 class FacelessCarousel extends BaseElement {
   constructor() {
     super();
@@ -216,7 +262,7 @@ class FacelessCarousel extends BaseElement {
     }
 
     this.viewport.addEventListener('mousedown', this._onDragStart);
-    this.viewport.addEventListener('touchstart', this._onDragStart, { passive: false });
+    this.viewport.addEventListener('touchstart', this._onDragStart, { passive: true });
     window.addEventListener('mouseup', this._onDragEnd);
     window.addEventListener('touchend', this._onDragEnd);
 
@@ -225,8 +271,12 @@ class FacelessCarousel extends BaseElement {
     this.viewport.addEventListener('wheel', this._onWheel, { passive: false });
     this.playPauseBtn.addEventListener('click', this._toggleAutoplay);
 
-    this.resizeObserver = new ResizeObserver(this._onResize);
-    this.resizeObserver.observe(this);
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(this._onResize);
+      this.resizeObserver.observe(this);
+    } else {
+      window.addEventListener('resize', this._onResize);
+    }
 
     this.slotEl.addEventListener('slotchange', () => {
       if (!this.state.isInitializing) this._deferredInit();
@@ -252,6 +302,7 @@ class FacelessCarousel extends BaseElement {
     cancelAnimationFrame(this.rafId);
     this._stopAutoplay();
     if (this.resizeObserver) this.resizeObserver.disconnect();
+    else window.removeEventListener('resize', this._onResize);
     if (this._hydrationObserver) this._hydrationObserver.disconnect();
     clearTimeout(this._hydrationTimer);
     window.removeEventListener('mouseup', this._onDragEnd);
@@ -273,7 +324,12 @@ class FacelessCarousel extends BaseElement {
 
   _onWheel(e) {
     if (!this.hasAttribute('mousewheel')) return;
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    let delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+
+    // Normalize deltaMode: Firefox uses LINE mode (1) for mouse wheels,
+    // which returns small values (e.g. 3) instead of pixel values (~100).
+    if (e.deltaMode === 1) delta *= 40;       // DOM_DELTA_LINE
+    else if (e.deltaMode === 2) delta *= 800; // DOM_DELTA_PAGE
 
     if (Math.abs(delta) < 5) return;
 
@@ -380,11 +436,13 @@ class FacelessCarousel extends BaseElement {
         if (isVisible) {
           el.setAttribute('data-visible', 'true');
           el.removeAttribute('aria-hidden');
-          el.querySelectorAll('a, button, input, select, textarea').forEach(c => c.removeAttribute('tabindex'));
+          el.inert = false;
+          el.querySelectorAll('a, button, input, select, textarea, [tabindex]').forEach(c => c.removeAttribute('tabindex'));
         } else {
           el.removeAttribute('data-visible');
           el.setAttribute('aria-hidden', 'true');
-          el.querySelectorAll('a, button, input, select, textarea').forEach(c => c.setAttribute('tabindex', '-1'));
+          el.inert = true;
+          el.querySelectorAll('a, button, input, select, textarea, [tabindex]').forEach(c => c.setAttribute('tabindex', '-1'));
         }
       }
     });
@@ -396,11 +454,14 @@ class FacelessCarousel extends BaseElement {
   }
 
   _applyA11yDefaults() {
-    // JS fallback for browsers without CSS interactivity: inert support.
-    // All slides start hidden; _syncActiveStates() reveals visible ones.
+    // All slides start hidden+inert; _syncActiveStates() reveals visible ones.
+    // Clears data-visible so _syncActiveStates change-detection re-triggers correctly.
+    // Uses both inert AND tabindex=-1 as fallback for Firefox slotted-content bug.
     Array.from(this.children).filter(el => !el.slot).forEach(el => {
+      el.removeAttribute('data-visible');
       el.setAttribute('aria-hidden', 'true');
-      el.querySelectorAll('a, button, input, select, textarea').forEach(c => c.setAttribute('tabindex', '-1'));
+      el.inert = true;
+      el.querySelectorAll('a, button, input, select, textarea, [tabindex]').forEach(c => c.setAttribute('tabindex', '-1'));
     });
   }
 
@@ -646,12 +707,16 @@ class FacelessCarousel extends BaseElement {
 
   goTo(index, animate = true) {
     const { realCount, cloneCount, stride } = this.state;
+    const prevRealIdx = ((this.state.currentIndex % realCount) + realCount) % realCount;
     if (!this.hasAttribute('loop')) index = Math.max(0, Math.min(index, realCount - 1));
     this.state.currentIndex = index;
     const target = -((cloneCount + index) * stride);
     if (animate) this.state.targetTranslate = target;
     else { this.state.currentTranslate = target; this.state.targetTranslate = target; }
     const realIdx = ((index % realCount) + realCount) % realCount;
+    if (realIdx !== prevRealIdx) {
+      this._emit('slide-change', { index: realIdx, previousIndex: prevRealIdx, total: realCount });
+    }
     if (this.srAnnouncer) this.srAnnouncer.textContent = `Slide ${realIdx + 1} of ${realCount}`;
     this._syncActiveStates();
   }
@@ -662,15 +727,19 @@ class FacelessCarousel extends BaseElement {
   _onDragStart(e) {
     this._stopAutoplay();
     this.state.isDragging = true;
-    this.state.startX = e.pageX || (e.touches ? e.touches[0].pageX : 0);
+    this.state.startX = e.touches ? e.touches[0].pageX : e.pageX;
     this.state.prevTranslate = this.state.currentTranslate;
+    this.state.dragStartIndex = this.state.currentIndex;
     window.addEventListener('mousemove', this._onDragMove);
-    window.addEventListener('touchmove', this._onDragMove, { passive: false });
+    window.addEventListener('touchmove', this._onDragMove, { passive: true });
+    const { realCount } = this.state;
+    const realIdx = ((this.state.currentIndex % realCount) + realCount) % realCount;
+    this._emit('drag-start', { index: realIdx });
   }
 
   _onDragMove(e) {
     if (!this.state.isDragging) return;
-    const x = e.pageX || (e.touches ? e.touches[0].pageX : 0);
+    const x = e.touches ? e.touches[0].pageX : e.pageX;
     this.state.currentTranslate = this.state.prevTranslate + (x - this.state.startX);
   }
 
@@ -691,7 +760,11 @@ class FacelessCarousel extends BaseElement {
     } else {
       targetIndex = (1 - fraction) >= threshold ? Math.floor(exactIndex) : Math.ceil(exactIndex);
     }
+    const { realCount } = this.state;
+    const prevRealIdx = ((this.state.dragStartIndex % realCount) + realCount) % realCount;
     this.goTo(targetIndex);
+    const newRealIdx = ((targetIndex % realCount) + realCount) % realCount;
+    this._emit('drag-end', { index: newRealIdx, previousIndex: prevRealIdx });
     if (this.hasAttribute('autoplay') && !this.state.isUserPaused) this._startAutoplay();
   }
 
@@ -704,6 +777,7 @@ class FacelessCarousel extends BaseElement {
     const focusedElement = e.composedPath()[0];
     const slide = focusedElement.closest('[data-slide-idx]');
     if (!slide || slide.classList.contains('clone')) return;
+    if (slide.hasAttribute('data-visible')) return;
     const index = parseInt(slide.getAttribute('data-slide-idx'));
     this.goTo(index);
   }
@@ -772,8 +846,10 @@ class FacelessCarousel extends BaseElement {
     this.state.isPaused = paused;
     if (paused) {
       this._stopAutoplay();
+      if (this.hasAttribute('autoplay')) this._emit('autoplay-pause', {});
     } else if (this.hasAttribute('autoplay') && !this.state.isUserPaused) {
       this._startAutoplay();
+      this._emit('autoplay-resume', {});
     }
     this._updateAriaLive();
   }
@@ -782,9 +858,11 @@ class FacelessCarousel extends BaseElement {
     this.state.isUserPaused = !this.state.isUserPaused;
     if (this.state.isUserPaused) {
       this._stopAutoplay();
+      this._emit('autoplay-pause', {});
     } else if (this.hasAttribute('autoplay')) {
       this.state.isPaused = false;
       this._startAutoplay();
+      this._emit('autoplay-resume', {});
     }
     this._updatePlayPauseButton();
     this._updateAriaLive();
@@ -821,6 +899,12 @@ class FacelessCarousel extends BaseElement {
     this.track.setAttribute('aria-live', value);
     this.srAnnouncer.setAttribute('aria-live', value);
   }
+  _emit(name, detail) {
+    const opts = { bubbles: true, composed: true, detail };
+    this.dispatchEvent(new CustomEvent(name, opts));
+    this.dispatchEvent(new CustomEvent(name.replace(/-/g, ''), opts));
+  }
+
   _onResize() { this._measure(); }
 }
 

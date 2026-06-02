@@ -1,4 +1,8 @@
 */ssr-showcase.html
 /tests
-/types
+/scripts
 /.vite
+package.json
+package-lock.json
+custom-elements.json
+node_modules

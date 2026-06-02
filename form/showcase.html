@@ -595,6 +595,143 @@
     </script>
 
 
+    <!-- ─────────────────────────────────────────────────────────────────────
+         Demo 8 — Checkbox (faceless-checkbox)
+         Single checkbox with required validation
+    ──────────────────────────────────────────────────────────────────────── -->
+    <h2>8. Checkbox (<code>&lt;faceless-checkbox&gt;</code>)</h2>
+    <p>Single checkboxes with the <code>&lt;faceless-checkbox&gt;</code> shortcut. Replaces the verbose markup from Demo 4.</p>
+
+    <div class="form-card">
+        <faceless-form id="form8" aria-label="Terms form">
+
+            <faceless-input
+                name="name"
+                label="Name"
+                required
+                autocomplete="name"
+                error-required="Please enter your name.">
+            </faceless-input>
+
+            <faceless-checkbox
+                name="terms"
+                label="I accept the terms and conditions"
+                required
+                error-required="You must accept the terms and conditions.">
+            </faceless-checkbox>
+
+            <faceless-checkbox
+                name="newsletter"
+                label="Subscribe to the newsletter"
+                hint="Optional — you can unsubscribe any time.">
+            </faceless-checkbox>
+
+            <button type="submit" class="submit-btn">Submit</button>
+        </faceless-form>
+
+        <div class="event-log" id="log8" aria-label="Event log Demo 8" aria-live="polite">
+            <p>— Waiting for form-submit …</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('form8').addEventListener('form-submit', (e) => {
+            const log = document.getElementById('log8');
+            const cls = e.detail.valid ? 'log-valid' : 'log-invalid';
+            const label = e.detail.valid ? '✅ valid' : '❌ invalid';
+            const summary = e.detail.valid
+                ? JSON.stringify(e.detail.values)
+                : JSON.stringify(e.detail.errors);
+            log.innerHTML = `<p class="${cls}">${label}: ${summary}</p>`;
+        });
+
+        // Log check-change events
+        document.querySelectorAll('#form8 faceless-checkbox').forEach(cb => {
+            cb.addEventListener('check-change', (e) => {
+                const log = document.getElementById('log8');
+                const prev = log.innerHTML;
+                log.innerHTML = `<p>check-change: ${JSON.stringify(e.detail)}</p>${prev}`;
+            });
+        });
+    </script>
+
+
+    <!-- ─────────────────────────────────────────────────────────────────────
+         Demo 9 — Radio Group (faceless-checkbox type="radio")
+         Multiple radios sharing the same name
+    ──────────────────────────────────────────────────────────────────────── -->
+    <h2>9. Radio Group (<code>type="radio"</code>)</h2>
+    <p>Radio buttons using <code>&lt;faceless-checkbox type="radio"&gt;</code>. Radios with the same <code>name</code> form a group — selecting one unchecks the others.</p>
+
+    <div class="form-card">
+        <faceless-form id="form9" aria-label="Plan selection form">
+
+            <div data-error-summary hidden></div>
+
+            <fieldset class="radio-group">
+                <legend>Choose a plan</legend>
+                <faceless-checkbox
+                    name="plan"
+                    type="radio"
+                    label="Free"
+                    value="free"
+                    required
+                    error-required="Please choose a plan.">
+                </faceless-checkbox>
+
+                <faceless-checkbox
+                    name="plan"
+                    type="radio"
+                    label="Pro — $9/month"
+                    value="pro">
+                </faceless-checkbox>
+
+                <faceless-checkbox
+                    name="plan"
+                    type="radio"
+                    label="Enterprise — $29/month"
+                    value="enterprise">
+                </faceless-checkbox>
+            </fieldset>
+
+            <faceless-input
+                name="email"
+                type="email"
+                label="Email"
+                required
+                autocomplete="email"
+                error-required="Email is required.">
+            </faceless-input>
+
+            <button type="submit" class="submit-btn">Continue</button>
+        </faceless-form>
+
+        <div class="event-log" id="log9" aria-label="Event log Demo 9" aria-live="polite">
+            <p>— Waiting for form-submit …</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('form9').addEventListener('form-submit', (e) => {
+            const log = document.getElementById('log9');
+            const cls = e.detail.valid ? 'log-valid' : 'log-invalid';
+            const label = e.detail.valid ? '✅ valid' : '❌ invalid';
+            const summary = e.detail.valid
+                ? JSON.stringify(e.detail.values)
+                : JSON.stringify(e.detail.errors);
+            log.innerHTML = `<p class="${cls}">${label}: ${summary}</p>`;
+        });
+
+        document.querySelectorAll('#form9 faceless-checkbox').forEach(cb => {
+            cb.addEventListener('check-change', (e) => {
+                const log = document.getElementById('log9');
+                const prev = log.innerHTML;
+                log.innerHTML = `<p>check-change: ${JSON.stringify(e.detail)}</p>${prev}`;
+            });
+        });
+    </script>
+
+
     <footer>
         Faceless-form Component — Zero dependencies.
     </footer>

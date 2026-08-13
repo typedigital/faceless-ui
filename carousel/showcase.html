@@ -6,7 +6,13 @@
     <title>Faceless-carousel Master Demo</title>
 
     <script src="index.js" defer></script>
+    <!-- Preflight first — it only applies while the component is not ready yet. -->
+    <link rel="stylesheet" href="preflight.css">
     <link rel="stylesheet" href="showcase.css">
+
+    <noscript>
+        <style>faceless-carousel:not(:defined) { display: block; overflow: visible; }</style>
+    </noscript>
 </head>
 <body>
 

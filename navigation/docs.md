@@ -52,6 +52,8 @@ The `<faceless-nav-item>` helper element eliminates `<li>`, `<a>`/`<button>`, an
 1. `label` attribute — if present, used verbatim
 2. Text / inline-element children — moved into the toggle
 
+**Already-rendered markup is adopted, not rebuilt.** When a `[part="toggle"]` (and optionally a `[part="submenu"]`) is present in the incoming HTML, those elements are reused and only their attributes are synced — nothing is created, moved, or removed. This is what makes the element safe to server-render; see § 9.
+
 #### `<faceless-nav-item>` API
 
 | Attribute  | Type    | Description                                                                    |
@@ -276,7 +278,7 @@ When the type changes, all ARIA attributes from the previous pattern are cleanly
 
 | Attribute           | Element                          | Description                          |
 |---------------------|----------------------------------|--------------------------------------|
-| `data-type`         | Host                             | Reflects current type                |
+| `data-type`         | Host                             | Reflects current type. Absent until the component has resolved it — see § 9 |
 | `data-open`         | `<li>`/`<faceless-nav-item>`, toggle, submenu | Styling hook for open submenus |
 | `data-hamburger-open` | Host                           | Hamburger overlay is open            |
 | `data-depth="N"`    | Submenu `<ul>`                   | Nesting depth (0-based)              |
@@ -399,6 +401,72 @@ If no `aria-label` is provided on the host, the component logs a console warning
 | Node.js / Deno / Edge Runtimes  | Safe — no runtime errors     |
 
 **How it works:** Both components detect whether a browser environment is available via `typeof window !== 'undefined'`. In non-browser contexts, all DOM-dependent lifecycle methods exit immediately and `customElements.define` is skipped. The element tags are preserved in the server-rendered HTML and activate fully once JavaScript runs in the client.
+
+Run `node navigation/ssr-test.mjs` to verify this and to regenerate `ssr-showcase.html`, which demonstrates each variant below.
+
+### 9.1 Pre-upgrade layout (required for SSR/SSG)
+
+Importing safely on the server is not the whole story. Between the first paint and the moment the component is ready, **none of your styles match** — every consumer-facing rule is keyed on `[data-type="…"]`, and that attribute does not exist yet. The navigation renders as a raw, fully expanded list, then collapses into its real layout. Since a navigation sits above the fold, that collapse pushes the entire page down.
+
+The fix is a stylesheet shipped with the component. Load it **before** your own styles:
+
+```html
+<link rel="stylesheet" href="navigation/preflight.css">
+<link rel="stylesheet" href="your-navigation.css">
+```
+
+It reserves a fixed box and clips the unstyled tree until `data-type` appears, so the geometry never changes. Emulating the final layout is not an option here — `desktop`, `hamburger`, and `app-menu` have three different geometries — which is why the placeholder is type-independent.
+
+**You must declare the height.** The 44px default is a minimum touch target, not a measurement of your navigation. Set it alongside the `--nav-type` media queries you already write:
+
+```css
+@media (max-width: 768px) {
+  faceless-navigation { --nav-type: hamburger; --nav-placeholder-height: 44px; }
+}
+@media (min-width: 769px) {
+  faceless-navigation { --nav-type: desktop; --nav-placeholder-height: 64px; }
+}
+```
+
+Err slightly high: a placeholder that is too tall collapses by the difference, one that is too short lets content jump down by it.
+
+**Use `:not([data-type])`, not `:not(:defined)`,** for any pre-upgrade rule of your own. `:defined` flips as soon as the definition is registered, which is still before the pattern has been applied. `[data-type]` marks the point at which the navigation is actually ready to be styled.
+
+**Without JavaScript** the attribute never appears and the navigation stays hidden. Add this to your `<head>`:
+
+```html
+<noscript>
+  <style>faceless-navigation:not([data-type]) > * { visibility: visible; }</style>
+</noscript>
+```
+
+### 9.2 Server-render the toggles
+
+`<faceless-nav-item>` normally builds its `<a>`/`<button>` on the client, which means the server-rendered HTML contains no links at all — invisible to crawlers, unusable without JavaScript, and the source of the shift § 9.1 covers.
+
+Emit the inner markup instead, and it is adopted verbatim:
+
+```html
+<faceless-navigation aria-label="Main navigation" type="desktop">
+  <faceless-nav-item href="/">
+    <a part="toggle" href="/">Home</a>
+  </faceless-nav-item>
+  <faceless-nav-item>
+    <button part="toggle">Products</button>
+    <ul part="submenu">
+      <faceless-nav-item href="/a"><a part="toggle" href="/a">Product A</a></faceless-nav-item>
+    </ul>
+  </faceless-nav-item>
+</faceless-navigation>
+```
+
+Rules: an `<a>` when `href` is set, a `<button>` when it is not; `[part="submenu"]` must be a `<ul>` and contain the nested items. The component syncs `href`, `disabled`, and ARIA onto what it finds. Manual `<nav><ul><li>` markup (Option B) needs none of this — it is already complete.
+
+### 9.3 Frameworks
+
+For React and other VDOM frameworks, § 9.2 is not only an optimisation. When the toggle is missing, the component moves your label text nodes into a newly created `<a>` — nodes the framework believes it still owns. A later re-render of the navigation can then fail with `NotFoundError: Failed to execute 'removeChild' on 'Node'`. Server-rendering the toggle means nothing is moved, and re-renders triggered by attribute changes never restructure the DOM either.
+
+`<faceless-navigation>` also tolerates a Declarative Shadow DOM root that the parser attached before the upgrade, so post-build DSD injection remains possible.
 
 ---
 

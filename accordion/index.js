@@ -95,8 +95,14 @@ class FacelessAccordion extends BaseElement {
   constructor() {
     super();
     if (!isBrowser) return;
-    this.attachShadow({ mode: 'open' });
-    this.shadowRoot.appendChild(template.content.cloneNode(true));
+
+    // A Shadow Root may already exist when the markup was server-rendered with
+    // Declarative Shadow DOM — the parser attaches it before the upgrade runs.
+    // Calling attachShadow() again would throw, so adopt what is already there.
+    if (!this.shadowRoot) {
+      this.attachShadow({ mode: 'open' });
+      this.shadowRoot.appendChild(template.content.cloneNode(true));
+    }
 
     this.playPauseBtn = this.shadowRoot.querySelector('.play-pause-btn');
     this.srAnnouncer = this.shadowRoot.querySelector('.sr-announcer');
@@ -252,6 +258,10 @@ class FacelessAccordion extends BaseElement {
       this._startAutoplay();
       this._updateAriaLive();
     }
+
+    // Panels now carry their real open/closed height. Release the pre-upgrade
+    // placeholder, which was keeping closed panels collapsed (see preflight.css).
+    this.setAttribute('data-ready', '');
   }
 
   _setOpenAttrs(item, open) {

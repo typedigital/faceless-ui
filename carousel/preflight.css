@@ -1,0 +1,105 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Faceless UI — Carousel Preflight
+ *
+ * Load this BEFORE your own carousel styles, in the document <head>:
+ *
+ *   <link rel="stylesheet" href="carousel/preflight.css">
+ *
+ * ── Why this file exists ────────────────────────────────────────────────────
+ *
+ * The slides are light-DOM children, so they ARE in the server-rendered HTML —
+ * this is not the usual "empty box grows" problem. It is the opposite: before
+ * the upgrade the host is an inline box and every slide stacks vertically in
+ * normal flow. A five-slide carousel is then five slides tall, and collapses
+ * into a single row once the component takes over. That collapse is the shift,
+ * and it is far larger than any missing-content shift would be.
+ *
+ * `min-height` cannot fix that. What works is emulating the final layout: the
+ * rules below lay the slides out in the same row, at the same width, using the
+ * very custom properties the component itself reads in _measure().
+ *
+ * ── Two windows, two hooks ──────────────────────────────────────────────────
+ *
+ * The carousel passes through two distinct states, and they need different
+ * rules. Using one hook for both double-counts the chrome and fights the
+ * component's own layout.
+ *
+ *   1. `:not(:defined)` — no Shadow DOM yet. The host must fake the entire
+ *      layout: the row, the gap, and the strip below it for dots and the
+ *      play/pause button.
+ *
+ *   2. `:not([data-ready])` — Shadow DOM is live and already renders the track
+ *      and the chrome, but _measure() has not run, so `--internal-slide-width`
+ *      is still `0px` and every slide would collapse to zero width. Only the
+ *      slide sizing is needed here; anything at host level would be applied on
+ *      top of what the Shadow DOM is already doing.
+ *
+ * That second window is not a detail: _deferredInit() waits for `window.load`,
+ * so on a page with images the carousel stays unmeasured long after it is
+ * `:defined`. `data-ready` is set once the slides are measured and positioned.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Window 1: before the upgrade ─────────────────────────────────────────── */
+
+faceless-carousel:not(:defined) {
+  display: flex;
+  overflow: hidden;
+  gap: var(--gap, 0px);
+  padding-bottom: var(--carousel-chrome-height, 0px);
+}
+
+/* Reserve the strip below the track for dots and the play/pause button.
+ * Dots: 44px touch target + 2×20px padding. Play/pause: ~1rem + 8px padding.
+ * Override --carousel-chrome-height if you restyle either. */
+faceless-carousel[show-dots]:not(:defined)            { --carousel-chrome-height: 84px; }
+faceless-carousel[autoplay]:not(:defined)             { --carousel-chrome-height: 32px; }
+faceless-carousel[show-dots][autoplay]:not(:defined)  { --carousel-chrome-height: 116px; }
+
+/* hide-play-pause moves the button out of flow — no strip to reserve for it. */
+faceless-carousel[autoplay][hide-play-pause]:not(:defined)            { --carousel-chrome-height: 0px; }
+faceless-carousel[show-dots][autoplay][hide-play-pause]:not(:defined) { --carousel-chrome-height: 84px; }
+
+/* ── Window 2: upgraded, not yet measured ─────────────────────────────────── */
+
+/* Applies in both windows: before the upgrade it builds the row, after it
+ * overrides the component's `width: 0` default. `flex-basis` determines the main
+ * size of a flex item regardless of `width`, so this wins without !important. */
+faceless-carousel:not([data-ready]) > * {
+  flex: 0 0 calc(
+    (100% - var(--gap, 0px) * (var(--items-per-view, 1) - 1))
+    / var(--items-per-view, 1)
+  );
+  min-width: 0;
+}
+
+/* ── Configure via CSS variables, not attributes ─────────────────────────────
+ *
+ * The component accepts `--items-per-view` / `--gap` as CSS variables and
+ * `items-per-view` / `gap` as attributes. Only the variables are visible to CSS,
+ * so only they produce a correct placeholder — and as a bonus the placeholder
+ * then follows your responsive media queries automatically:
+ *
+ *   faceless-carousel { --items-per-view: 1; --gap: 16px; }
+ *   @media (min-width: 768px) {
+ *     faceless-carousel { --items-per-view: 3; }
+ *   }
+ *
+ * If you configure by attribute instead, add matching variables for the
+ * placeholder, or accept a horizontal-only inaccuracy during the upgrade window.
+ *
+ * ── Known approximation: peek ───────────────────────────────────────────────
+ *
+ * `peek` narrows the slides slightly; the placeholder ignores it. That affects
+ * slide width, not the height of the box, so the vertical shift stays at zero —
+ * except for slides whose height depends on text reflow.
+ *
+ * ── Without JavaScript ──────────────────────────────────────────────────────
+ *
+ * The element stays undefined, so the slides remain in the emulated row, clipped
+ * by `overflow: hidden` — the first slide (or first N) stays readable and the
+ * rest are unreachable. If you would rather show all of them stacked, add:
+ *
+ *   <noscript>
+ *     <style>faceless-carousel:not(:defined) { display: block; overflow: visible; }</style>
+ *   </noscript>
+ * ───────────────────────────────────────────────────────────────────────────── */

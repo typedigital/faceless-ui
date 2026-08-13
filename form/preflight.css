@@ -1,0 +1,76 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Faceless UI — Form Preflight
+ *
+ * Load this BEFORE your own form styles, in the document <head>:
+ *
+ *   <link rel="stylesheet" href="form/preflight.css">
+ *
+ * ── Why this file exists ────────────────────────────────────────────────────
+ *
+ * Unlike the carousel and the accordion, this is the classic case: when the
+ * field markup is not server-rendered, `<faceless-input>` and
+ * `<faceless-checkbox>` are empty inline elements — roughly zero pixels tall —
+ * until the component builds their label, control, hint, and error nodes. The
+ * form then grows by a full field height per field, pushing everything below.
+ *
+ * The right fix is to server-render the field markup (see form/docs.md § 12 and
+ * § 14) — both components adopt existing `[data-input]` markup instead of
+ * rebuilding it, so there is nothing left to shift. These rules cover the case
+ * where you cannot, or have not yet.
+ *
+ * ── Only reserve space when the markup is actually missing ──────────────────
+ *
+ * The placeholder is scoped with `:not(:has([data-input]))`. On a server-
+ * rendered field the real content is already there, and adding a min-height on
+ * top of it could make the box *shrink* on upgrade — introducing the very shift
+ * this file exists to prevent.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/* The hosts carry no display rule of their own — not even after the upgrade —
+ * so they stay inline while containing block-level content. Declaring it here
+ * keeps the placeholder and the final layout consistent. */
+faceless-form,
+faceless-input,
+faceless-checkbox {
+  display: block;
+}
+
+faceless-input:not([data-ready]):not(:has([data-input])) {
+  min-height: var(--faceless-input-placeholder, 76px);
+}
+
+faceless-checkbox:not([data-ready]):not(:has([data-input])) {
+  min-height: var(--faceless-checkbox-placeholder, 24px);
+}
+
+/* ── Measure your own fields ─────────────────────────────────────────────────
+ *
+ * The defaults assume a label above a single-line control plus an error slot.
+ * They are a starting point, not a measurement of your design. Measure a
+ * rendered field and set the variables once, globally:
+ *
+ *   :root {
+ *     --faceless-input-placeholder: 82px;
+ *     --faceless-checkbox-placeholder: 28px;
+ *   }
+ *
+ * Fields that differ structurally need their own value — a textarea most of all:
+ *
+ *   faceless-input[element="textarea"] { --faceless-input-placeholder: 160px; }
+ *   faceless-input[hint]               { --faceless-input-placeholder: 100px; }
+ *
+ * Err slightly high: a placeholder that is too tall collapses by the difference,
+ * one that is too short lets the content below jump down by it.
+ *
+ * ── Browser support ─────────────────────────────────────────────────────────
+ *
+ * `:has()` requires Chrome 105+, Safari 15.4+, Firefox 121+. Older browsers skip
+ * the placeholder rules entirely and behave exactly as they do today — the
+ * degradation is the unfixed shift, never a broken layout.
+ *
+ * ── Without JavaScript ──────────────────────────────────────────────────────
+ *
+ * A field whose markup is not server-rendered has no content to show, with or
+ * without these rules. That is an argument for server-rendering the markup, not
+ * for a noscript override.
+ * ───────────────────────────────────────────────────────────────────────────── */

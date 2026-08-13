@@ -516,6 +516,33 @@ In an SSR context, emit the form fields pre-wrapped in `<form novalidate>`:
 
 When JavaScript runs in the browser, `connectedCallback` finds the existing `<form>` (`:scope > form`) and reuses it instead of creating a new one. The component then re-runs `_init()` to wire ARIA attributes.
 
+**Always emit the `<form>` yourself when rendering from a VDOM framework.** If it is missing, the component creates one and moves every child into it — nodes that React or Vue still consider theirs. A later re-render can then fail with `NotFoundError: Failed to execute 'removeChild' on 'Node'`. With the `<form>` in your own markup, nothing is reparented.
+
+The same applies one level down: `<faceless-input>` and `<faceless-checkbox>` adopt existing `[data-input]` markup instead of rebuilding it (see § 14 and § 15). Server-rendering the fields is what makes the form complete, usable without JavaScript, and free of layout shift.
+
+### Pre-upgrade layout
+
+When the field markup is *not* server-rendered, `<faceless-input>` and `<faceless-checkbox>` are empty inline elements until the component builds their contents — the form then grows by a full field height per field. Load the shipped stylesheet **before** your own:
+
+```html
+<link rel="stylesheet" href="form/preflight.css">
+<link rel="stylesheet" href="your-form.css">
+```
+
+It declares `display: block` on the three hosts (none of them carry a display rule otherwise, not even after the upgrade) and reserves a per-field height while the markup is missing. The placeholder is scoped with `:not(:has([data-input]))`, so a server-rendered field is never given a min-height it might have to shrink out of.
+
+Measure your own fields and set the variables once — the defaults assume a label above a single-line control plus an error slot:
+
+```css
+:root {
+  --faceless-input-placeholder: 82px;
+  --faceless-checkbox-placeholder: 28px;
+}
+faceless-input[element="textarea"] { --faceless-input-placeholder: 160px; }
+```
+
+Both components set `data-ready` once their markup exists, along either path. Use `:not([data-ready])` for any pre-upgrade rule of your own rather than `:not(:defined)`.
+
 ### Verification
 
 ```sh

@@ -349,6 +349,8 @@ const html = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Faceless Form — SSR Showcase</title>
   <script type="module" src="index.js"></script>
+  <!-- Preflight first — it only applies while the component is not ready yet. -->
+  <link rel="stylesheet" href="preflight.css">
   <link rel="stylesheet" href="showcase.css">
   <style>
     .claim { color: var(--td-sunset); font-weight: bold; margin-bottom: 30px; }

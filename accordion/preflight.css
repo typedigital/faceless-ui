@@ -1,0 +1,64 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Faceless UI — Accordion Preflight
+ *
+ * Load this BEFORE your own accordion styles, in the document <head>:
+ *
+ *   <link rel="stylesheet" href="accordion/preflight.css">
+ *
+ * ── Why this file exists ────────────────────────────────────────────────────
+ *
+ * Panels are light-DOM children, so they are in the server-rendered HTML — and
+ * they are all open. The component collapses the closed ones in _init(), by
+ * setting `height: 0` on each panel. Until that runs, the accordion renders at
+ * full expanded height and then snaps shut: a large upward collapse, not the
+ * usual "empty box grows" shift.
+ *
+ * These rules pre-collapse the panels the same way the component will, so the
+ * height never changes.
+ *
+ * ── The hook: `:not([data-ready])`, not `:not(:defined)` ────────────────────
+ *
+ * This distinction matters more here than anywhere else: the accordion never
+ * initialises from connectedCallback — it waits for `slotchange`, which fires
+ * asynchronously after the upgrade. So there is always a window in which the
+ * element is `:defined` but every panel is still open. `data-ready` is set at
+ * the end of _init(), after the panels have their real heights.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+faceless-accordion:not([data-ready]) {
+  display: block;
+}
+
+faceless-accordion:not([data-ready]) [data-panel] {
+  display: none;
+}
+
+/* `data-open` on the item wrapper is the consumer-authored "start open" marker
+ * that _init() reads — mirror it so those panels stay open through the upgrade. */
+faceless-accordion:not([data-ready]) [data-open] [data-panel] {
+  display: block;
+}
+
+/* With autoplay and no explicitly opened item, _init() opens the first enabled
+ * one. `:first-child:not([data-disabled])` approximates that: it differs only
+ * when the first item is disabled AND a later one is not. */
+faceless-accordion[autoplay]:not([data-ready]) > *:first-child:not([data-disabled]) [data-panel] {
+  display: block;
+}
+
+/* ── Nested accordions ──────────────────────────────────────────────────────
+ *
+ * The descendant selectors above also reach panels of a nested accordion. That
+ * is intentional: a nested accordion gets the same pre-collapse treatment, and
+ * releases it with its own `data-ready`.
+ *
+ * ── Without JavaScript ─────────────────────────────────────────────────────
+ *
+ * `data-ready` never appears and every panel stays collapsed — the content
+ * would be unreachable. Unlike the other components this is a content loss, not
+ * just a cosmetic one, so add the escape hatch:
+ *
+ *   <noscript>
+ *     <style>faceless-accordion:not([data-ready]) [data-panel] { display: block; }</style>
+ *   </noscript>
+ * ───────────────────────────────────────────────────────────────────────────── */

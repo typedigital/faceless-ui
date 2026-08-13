@@ -1,0 +1,79 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Faceless UI — Navigation Preflight
+ *
+ * Load this BEFORE your own navigation styles, in the document <head>:
+ *
+ *   <link rel="stylesheet" href="navigation/preflight.css">
+ *
+ * ── Why this file exists ────────────────────────────────────────────────────
+ *
+ * Every consumer-facing navigation style is keyed on `[data-type="…"]`, and the
+ * component sets that attribute only once it has resolved its type. Between the
+ * first paint and that moment, none of those rules match: the navigation renders
+ * as a raw, fully expanded list — vertical, bulleted, every submenu open. On a
+ * cold cache that window is long enough to be seen, and because a navigation
+ * sits above the fold, the collapse afterwards pushes the whole page.
+ *
+ * Emulating the target layout is not possible here — `desktop`, `hamburger` and
+ * `app-menu` have three completely different geometries. So instead of guessing,
+ * this file reserves a fixed box and clips whatever is inside it. The result is
+ * geometrically stable regardless of which type ends up resolving.
+ *
+ * ── The hook: `:not([data-type])`, not `:not(:defined)` ─────────────────────
+ *
+ * `:defined` flips the moment the custom element definition is registered, which
+ * is still before the component has applied its pattern. `[data-type]` appears
+ * exactly when the navigation is ready to be styled, so it covers that gap too.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+faceless-navigation:not([data-type]) {
+  display: block;
+  overflow: hidden;
+  min-height: var(--nav-placeholder-height, 44px);
+}
+
+/* Hide the unstyled tree rather than showing it for a few hundred milliseconds.
+ * `visibility` keeps the box — and therefore the reserved height — intact,
+ * which `display: none` would not. */
+faceless-navigation:not([data-type]) > * {
+  visibility: hidden;
+}
+
+/* ── Required: set the real height per breakpoint ────────────────────────────
+ *
+ * The default of 44px is a minimum touch target, not a measurement of your
+ * navigation. Measure the rendered height of yours and declare it alongside the
+ * `--nav-type` media queries you already write:
+ *
+ *   @media (max-width: 768px) {
+ *     faceless-navigation { --nav-type: hamburger; --nav-placeholder-height: 44px; }
+ *   }
+ *   @media (min-width: 769px) {
+ *     faceless-navigation { --nav-type: desktop; --nav-placeholder-height: 64px; }
+ *   }
+ *
+ * Err slightly high: a placeholder that is too tall collapses by the difference,
+ * one that is too short lets content jump down by it. The first scores better.
+ *
+ * ── Optional: paint the top level before the upgrade ─────────────────────────
+ *
+ * Blank-but-stable is the safe default. If you would rather show the first level
+ * immediately, mirror your base styles onto the pre-upgrade state and keep the
+ * submenus closed — geometry stays stable, only the content appears earlier:
+ *
+ *   faceless-navigation:not([data-type]) > * { visibility: visible; }
+ *   faceless-navigation:not([data-type]) faceless-nav-item [part="submenu"],
+ *   faceless-navigation:not([data-type]) ul ul { display: none; }
+ *
+ * This only works when the toggles are server-rendered (see docs.md § 9) —
+ * without them there is nothing to paint yet.
+ *
+ * ── Without JavaScript ──────────────────────────────────────────────────────
+ *
+ * If the bundle never arrives, `data-type` is never set and the navigation stays
+ * hidden. Add this to your <head> so the raw list is shown in that case:
+ *
+ *   <noscript>
+ *     <style>faceless-navigation:not([data-type]) > * { visibility: visible; }</style>
+ *   </noscript>
+ * ───────────────────────────────────────────────────────────────────────────── */

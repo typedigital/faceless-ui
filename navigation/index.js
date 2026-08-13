@@ -56,6 +56,11 @@ const BaseElement = isBrowser ? HTMLElement : class {};
  * in the light DOM, so the parent navigation can discover and manage them without
  * any manual `<li>` / `<ul>` boilerplate.
  *
+ * When that markup is already present — because a server emitted it — it is
+ * adopted instead of rebuilt. Server-rendering the toggle is therefore the way
+ * to avoid both the pre-upgrade layout shift and framework hydration conflicts;
+ * see `docs.md` § 9.
+ *
  * @element faceless-nav-item
  *
  * @attr {string} href - URL for the item. When present an `<a>` is rendered; otherwise a `<button>`.
@@ -78,62 +83,89 @@ class FacelessNavItem extends BaseElement {
     this._render();
   }
 
+  /**
+   * Builds the light-DOM markup — or adopts it when it is already there.
+   *
+   * Adoption is what makes this element safe to server-render: when a
+   * `[part="toggle"]` (and optionally a `[part="submenu"]`) is present in the
+   * incoming HTML, the existing nodes are reused and only their attributes are
+   * synced. Nothing is removed, recreated, or moved. Two consequences:
+   *
+   * - No layout shift — the pre-rendered markup keeps its geometry through the
+   *   upgrade, and the links are real links before JavaScript runs.
+   * - No hydration conflict — framework-owned nodes (React, Vue) stay exactly
+   *   where their runtime expects them.
+   *
+   * Re-renders triggered by `attributeChangedCallback` never restructure the
+   * DOM either; they only write the changed attributes.
+   */
   _render() {
-    const existingToggle = this.querySelector(':scope > [part="toggle"]');
-    const existingSubmenu = this.querySelector(':scope > [part="submenu"]');
-
-    // Rescue label nodes from existing toggle so they are not lost on re-render
-    if (existingToggle && !this.getAttribute('label')) {
-      while (existingToggle.firstChild) {
-        this.insertBefore(existingToggle.firstChild, existingToggle);
-      }
-    }
-
-    // Rescue child nav-items from existing submenu so they survive the remove
-    if (existingSubmenu) {
-      Array.from(existingSubmenu.children)
-        .filter(el => el.tagName === 'FACELESS-NAV-ITEM')
-        .forEach(item => this.appendChild(item));
-    }
-
-    if (existingToggle) existingToggle.remove();
-    if (existingSubmenu) existingSubmenu.remove();
-
-    // Separate child nav-items from label nodes
-    const childNavItems = Array.from(this.children).filter(
-      el => el.tagName === 'FACELESS-NAV-ITEM'
-    );
-    const labelNodes = Array.from(this.childNodes).filter(
-      node => node.nodeType === Node.TEXT_NODE ||
-              (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'FACELESS-NAV-ITEM')
-    );
-
-    // Build toggle element
     const href = this.getAttribute('href');
-    const toggle = document.createElement(href ? 'a' : 'button');
-    toggle.setAttribute('part', 'toggle');
-    if (href) toggle.setAttribute('href', href);
+    const wantedTag = href ? 'A' : 'BUTTON';
+
+    let toggle = this.querySelector(':scope > [part="toggle"]');
+    let submenu = this.querySelector(':scope > [part="submenu"]');
+
+    // A toggle of the wrong kind can only mean `href` was added or removed at
+    // runtime — swap the element but carry the label nodes over.
+    if (toggle && toggle.tagName !== wantedTag) {
+      const replacement = document.createElement(href ? 'a' : 'button');
+      replacement.setAttribute('part', 'toggle');
+      while (toggle.firstChild) replacement.appendChild(toggle.firstChild);
+      this.replaceChild(replacement, toggle);
+      toggle = replacement;
+    }
+
+    // First build: no toggle in the markup, so create one and consume the
+    // label nodes — everything that is neither a nested item nor the submenu.
+    if (!toggle) {
+      toggle = document.createElement(href ? 'a' : 'button');
+      toggle.setAttribute('part', 'toggle');
+
+      Array.from(this.childNodes)
+        .filter(node =>
+          node.nodeType === Node.TEXT_NODE
+          || (node.nodeType === Node.ELEMENT_NODE
+              && node.tagName !== 'FACELESS-NAV-ITEM'
+              && node !== submenu))
+        .forEach(node => toggle.appendChild(node));
+
+      this.insertBefore(toggle, this.firstChild);
+    }
+
+    // Attribute sync — the only work performed on every re-render.
+    if (href) {
+      toggle.setAttribute('href', href);
+    } else {
+      toggle.removeAttribute('href');
+    }
+
+    // Guarded assignment: an adopted toggle may carry pre-rendered inline
+    // markup that must not be flattened when the label has not changed.
+    const label = this.getAttribute('label');
+    if (label && toggle.textContent !== label) toggle.textContent = label;
+
     if (this.hasAttribute('disabled')) {
       toggle.setAttribute('disabled', '');
       toggle.setAttribute('aria-disabled', 'true');
-    }
-
-    const label = this.getAttribute('label');
-    if (label) {
-      toggle.textContent = label;
     } else {
-      // Move (not clone) label nodes so the original slot is consumed
-      labelNodes.forEach(node => toggle.appendChild(node));
+      toggle.removeAttribute('disabled');
+      toggle.removeAttribute('aria-disabled');
     }
 
-    this.insertBefore(toggle, this.firstChild);
+    // Nested items still sitting as direct children have not been wrapped yet.
+    // Server-rendered markup has them inside the submenu already, so this is a
+    // no-op there.
+    const looseNavItems = Array.from(this.children)
+      .filter(el => el.tagName === 'FACELESS-NAV-ITEM');
 
-    // Build submenu when child nav-items are present
-    if (childNavItems.length > 0) {
-      const ul = document.createElement('ul');
-      ul.setAttribute('part', 'submenu');
-      childNavItems.forEach(item => ul.appendChild(item));
-      this.appendChild(ul);
+    if (looseNavItems.length > 0) {
+      if (!submenu) {
+        submenu = document.createElement('ul');
+        submenu.setAttribute('part', 'submenu');
+        this.appendChild(submenu);
+      }
+      looseNavItems.forEach(item => submenu.appendChild(item));
     }
   }
 }
@@ -214,8 +246,14 @@ class FacelessNavigation extends BaseElement {
   constructor() {
     super();
     if (!isBrowser) return;
-    this.attachShadow({ mode: 'open' });
-    this.shadowRoot.appendChild(template.content.cloneNode(true));
+
+    // A Shadow Root may already exist when the markup was server-rendered with
+    // Declarative Shadow DOM — the parser attaches it before the upgrade runs.
+    // Calling attachShadow() again would throw, so adopt what is already there.
+    if (!this.shadowRoot) {
+      this.attachShadow({ mode: 'open' });
+      this.shadowRoot.appendChild(template.content.cloneNode(true));
+    }
 
     this.state = {
       type: 'desktop',
@@ -281,20 +319,29 @@ class FacelessNavigation extends BaseElement {
 
     document.addEventListener('click', this._onClickOutside);
 
-    this.resizeObserver = new ResizeObserver(this._onResize);
-    this.resizeObserver.observe(this);
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(this._onResize);
+      this.resizeObserver.observe(this);
+    } else {
+      window.addEventListener('resize', this._onResize);
+    }
 
     this.shadowRoot.querySelector('slot:not([name])').addEventListener('slotchange', () => this._init());
 
-    if (this.querySelector('nav') || this.querySelector('ul') || this.querySelector('faceless-nav-item')) {
-      this._init();
-    }
+    // Always run — _init() resolves the type even when no markup is present yet,
+    // so `data-type` is set on the host and pre-upgrade placeholder styles
+    // (see preflight.css) stop applying as early as possible.
+    this._init();
   }
 
   disconnectedCallback() {
     if (!isBrowser) return;
     document.removeEventListener('click', this._onClickOutside);
-    if (this.resizeObserver) this.resizeObserver.disconnect();
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    } else {
+      window.removeEventListener('resize', this._onResize);
+    }
     this._clearAllHoverTimers();
     this._teardownPattern();
   }
@@ -338,7 +385,12 @@ class FacelessNavigation extends BaseElement {
 
     // Legacy mode: <nav><ul> structure (unchanged)
     const rootUl = nav ? nav.querySelector(':scope > ul') : this.querySelector(':scope > ul');
-    if (!rootUl) return;
+    if (!rootUl) {
+      // No recognised markup (yet). Still resolve the type so the host carries
+      // `data-type` and is not left in its pre-upgrade placeholder state.
+      this._measure();
+      return;
+    }
 
     this.state.tree = this._buildItemTree(rootUl, null, 0);
 
@@ -547,16 +599,19 @@ class FacelessNavigation extends BaseElement {
   }
 
   openHamburger() {
+    this._suppressNextClickOutside();
     if (this.state.type !== 'hamburger' || this.state.hamburgerOpen) return;
     this._openHamburger();
   }
 
   closeHamburger() {
+    this._suppressNextClickOutside();
     if (!this.state.hamburgerOpen) return;
     this._closeHamburger();
   }
 
   toggleHamburger() {
+    this._suppressNextClickOutside();
     if (this.state.hamburgerOpen) {
       this._closeHamburger();
     } else {
@@ -889,9 +944,20 @@ class FacelessNavigation extends BaseElement {
 
   // ─── Public API ───────────────────────────────────────────────────────────
 
-  open(toggleOrIndex) {
+  /**
+   * A programmatic open is almost always triggered by a click on a control
+   * outside the component. That same click keeps bubbling to the document
+   * listener, which would close what was just opened — so the next
+   * outside-click check is skipped. The internal hamburger button does not need
+   * this because it stops propagation itself.
+   */
+  _suppressNextClickOutside() {
     this._suppressClickOutside = true;
     setTimeout(() => { this._suppressClickOutside = false; }, 0);
+  }
+
+  open(toggleOrIndex) {
+    this._suppressNextClickOutside();
     const desc = this._resolveDescriptor(toggleOrIndex);
     if (!desc || desc.open) return;
     const siblings = desc.parent ? desc.parent.children : this.state.tree;

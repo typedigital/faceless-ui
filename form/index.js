@@ -37,8 +37,13 @@ class FacelessForm extends BaseElement {
     super();
     if (!isBrowser) return;
 
-    this.attachShadow({ mode: 'open' });
-    this.shadowRoot.appendChild(template.content.cloneNode(true));
+    // A Shadow Root may already exist when the markup was server-rendered with
+    // Declarative Shadow DOM — the parser attaches it before the upgrade runs.
+    // Calling attachShadow() again would throw, so adopt what is already there.
+    if (!this.shadowRoot) {
+      this.attachShadow({ mode: 'open' });
+      this.shadowRoot.appendChild(template.content.cloneNode(true));
+    }
 
     this.state = {
       uid: instanceCount++,
@@ -557,10 +562,14 @@ class FacelessInput extends BaseElement {
       this._wireAttributes();
       this._wireAria();
       this._bindControlEvents();
+      this.setAttribute('data-ready', '');
       return;
     }
 
     this._buildDOM();
+    // The field markup exists now — release the pre-upgrade placeholder that
+    // was reserving space for it (see preflight.css).
+    this.setAttribute('data-ready', '');
   }
 
   disconnectedCallback() {
@@ -907,10 +916,14 @@ class FacelessCheckbox extends BaseElement {
       this._wireAria();
       this._bindControlEvents();
       this._syncVisualState();
+      this.setAttribute('data-ready', '');
       return;
     }
 
     this._buildDOM();
+    // The field markup exists now — release the pre-upgrade placeholder that
+    // was reserving space for it (see preflight.css).
+    this.setAttribute('data-ready', '');
   }
 
   disconnectedCallback() {

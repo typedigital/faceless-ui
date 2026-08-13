@@ -193,8 +193,14 @@ class FacelessCarousel extends BaseElement {
   constructor() {
     super();
     if (!isBrowser) return;
-    this.attachShadow({ mode: 'open' });
-    this.shadowRoot.appendChild(template.content.cloneNode(true));
+
+    // A Shadow Root may already exist when the markup was server-rendered with
+    // Declarative Shadow DOM — the parser attaches it before the upgrade runs.
+    // Calling attachShadow() again would throw, so adopt what is already there.
+    if (!this.shadowRoot) {
+      this.attachShadow({ mode: 'open' });
+      this.shadowRoot.appendChild(template.content.cloneNode(true));
+    }
 
     this.state = {
       isDragging: false,
@@ -237,12 +243,26 @@ class FacelessCarousel extends BaseElement {
     return ['items-per-view', 'gap', 'loop', 'peek', 'peek-type', 'show-dots', 'autoplay', 'interval', 'mousewheel', 'hide-play-pause', 'no-snap', 'drag-threshold', 'dot-label'];
   }
 
-  attributeChangedCallback() {
+  attributeChangedCallback(name, oldValue, newValue) {
     if (!isBrowser) return;
-    if (this.isConnected) {
-      this._measure();
-      this._toggleDots();
+    // Attribute reactions run before connectedCallback during an upgrade, so the
+    // Shadow DOM references do not exist yet. Nothing to update in that case.
+    if (!this.isConnected || !this.viewport) return;
+    if (oldValue === newValue) return;
+
+    // `loop` decides whether clone buffers exist at all, and `items-per-view`
+    // decides how many. Both change the child list, so measuring alone would
+    // leave the carousel with a stale (or missing) set of clones.
+    const structural = name === 'loop'
+      || (name === 'items-per-view' && this.hasAttribute('loop'));
+
+    if (structural) {
+      this._deferredInit();
+      return;
     }
+
+    this._measure();
+    this._toggleDots();
   }
 
   connectedCallback() {
@@ -569,7 +589,13 @@ class FacelessCarousel extends BaseElement {
     this.state.isInitializing = true;
     this.querySelectorAll('.clone').forEach(el => el.remove());
     const rawSlides = Array.from(this.children).filter(el => !el.classList.contains('clone') && !el.slot);
-    if (!rawSlides.length) { this.state.isInitializing = false; return; }
+    if (!rawSlides.length) {
+      this.state.isInitializing = false;
+      // Nothing to lay out — release the pre-upgrade placeholder anyway so an
+      // empty carousel does not keep reserving space (see preflight.css).
+      this.setAttribute('data-ready', '');
+      return;
+    }
 
     rawSlides.forEach((slide, idx) => slide.setAttribute('data-slide-idx', idx));
     this.state.realCount = rawSlides.length;
@@ -610,6 +636,9 @@ class FacelessCarousel extends BaseElement {
       this.state.isInitializing = false;
       if (this.hasAttribute('autoplay')) this._startAutoplay();
       this._updateAriaLive();
+      // Slides are measured and positioned — the real layout now matches what
+      // preflight.css was holding open, so the placeholder can be released.
+      this.setAttribute('data-ready', '');
     }, 0);
 
     this._applyA11yDefaults();

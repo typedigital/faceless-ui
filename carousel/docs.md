@@ -275,7 +275,40 @@ The component solves this with `_suppressTransition()`: on every teleport frame,
 
 **How it works:** The component detects whether a browser environment is available via `typeof window !== 'undefined'`. In non-browser contexts (Node.js, Deno, Edge, SSR pipelines), all DOM-dependent lifecycle methods exit immediately and `customElements.define` is skipped. The element tag is preserved in the server-rendered HTML and activates fully once JavaScript runs in the client.
 
-There is nothing to configure — server/client boundaries are not an obstacle.
+Importing is safe without configuration. Rendering *without a layout shift* needs one stylesheet — see § 9.1.
+
+### 9.1 Pre-upgrade layout (required for SSR/SSG)
+
+Slides are light-DOM children, so they are already in the server-rendered HTML. That makes this the opposite of the usual SSR problem: nothing is missing, but nothing is laid out either. Before the upgrade the host is an inline box and every slide stacks vertically — a five-slide carousel is five slides tall and then collapses into a single row. `min-height` cannot help with a collapse of that size.
+
+Load the shipped stylesheet **before** your own:
+
+```html
+<link rel="stylesheet" href="carousel/preflight.css">
+<link rel="stylesheet" href="your-carousel.css">
+```
+
+It emulates the final row layout using the same `--items-per-view` and `--gap` custom properties the component reads in `_measure()`, and reserves the strip below the track for dots and the play/pause button. Geometry therefore does not change when the component takes over.
+
+The stylesheet covers two distinct windows, with different hooks:
+
+| Window | Hook | What it does |
+|---|---|---|
+| Before the upgrade | `:not(:defined)` | Fakes the whole layout — row, gap, and the chrome strip below it |
+| Upgraded, not yet measured | `:not([data-ready])` | Sizes the slides only; the Shadow DOM already renders track and chrome |
+
+The second window matters because `_deferredInit()` waits for `window.load` — on a page with images the carousel stays unmeasured long after it is `:defined`, and `--internal-slide-width` is still `0px` in that state. Host-level rules must **not** be applied in that window, or the reserved chrome is counted twice.
+
+**Configure via CSS variables, not attributes.** CSS cannot read `items-per-view="3"`, so only the variable form produces a correct placeholder — and it then follows your responsive media queries automatically:
+
+```css
+faceless-carousel { --items-per-view: 1; --gap: 16px; }
+@media (min-width: 768px) {
+  faceless-carousel { --items-per-view: 3; }
+}
+```
+
+For rules of your own, pick the hook from the table above: `:not(:defined)` for anything at host level, `:not([data-ready])` for anything that must hold until the slides are measured.
 
 ### SSR Test
 

@@ -287,7 +287,30 @@ Without `pointer-events: none`, a mouse user can still click a disabled trigger 
 
 **How it works:** The component detects whether a browser environment is available via `typeof window !== 'undefined'`. In non-browser contexts, all DOM-dependent lifecycle methods exit immediately and `customElements.define` is skipped. The element tag is preserved in the server-rendered HTML and activates fully once JavaScript runs in the client.
 
-There is nothing to configure — server/client boundaries are not an obstacle.
+Importing is safe without configuration. Rendering *without a layout shift* needs one stylesheet — see § 9.1.
+
+### 9.1 Pre-upgrade layout (required for SSR/SSG)
+
+Panels are light-DOM children, so they are in the server-rendered HTML — and they are all open. `_init()` collapses the closed ones by setting `height: 0`. Until that runs, the accordion renders at full expanded height and then snaps shut.
+
+Load the shipped stylesheet **before** your own:
+
+```html
+<link rel="stylesheet" href="accordion/preflight.css">
+<link rel="stylesheet" href="your-accordion.css">
+```
+
+It pre-collapses the panels exactly as the component will, mirroring your `data-open` markers, so the height never changes.
+
+**Use `:not([data-ready])`, not `:not(:defined)`,** for any pre-upgrade rule of your own. This matters more here than for the other components: the accordion never initialises from `connectedCallback` — it waits for `slotchange`, which fires asynchronously after the upgrade. There is therefore always a window in which the element is `:defined` but every panel is still open. `data-ready` is set at the end of `_init()`.
+
+**Add the noscript escape hatch.** Without JavaScript, `data-ready` never appears and every panel stays collapsed — that is a content loss, not a cosmetic one:
+
+```html
+<noscript>
+  <style>faceless-accordion:not([data-ready]) [data-panel] { display: block; }</style>
+</noscript>
+```
 
 ### SSR Test
 

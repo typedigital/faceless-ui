@@ -116,6 +116,67 @@ Web Components rely on `document`, `window`, `ResizeObserver`, `requestAnimation
 
 Each component's `docs.md` must include a "Universal Rendering" section (see `carousel/docs.md` § 9 or `accordion/docs.md` § 9 as reference).
 
+## Pre-Upgrade Layout
+
+Importing safely on the server is only half of SSR support. Between the first paint and the moment a component is ready, its markup is present but unstyled and unarranged — and when the component takes over, the geometry changes. That change is a layout shift, and it is what users actually notice after a deploy with a cold cache.
+
+**Every component ships a `preflight.css` next to its `index.js`,** and its `docs.md` documents it as a required integration step. Consumers load it before their own styles.
+
+### The three rules
+
+**1. Emulate the target layout where the geometry is knowable; reserve a box where it is not.**
+
+`min-height` is only the right tool when the component grows from nothing (`faceless-input`). When light-DOM content is present but wrongly arranged, the pre-upgrade box is usually *too large*, and a min-height does nothing:
+
+| Component | Pre-upgrade state | Preflight strategy |
+|---|---|---|
+| `faceless-carousel` | All slides stacked vertically | Emulate the row via `--items-per-view` / `--gap` |
+| `faceless-accordion` | All panels open | Pre-collapse panels, mirror `data-open` |
+| `faceless-navigation` | Raw expanded list, no styles match | Reserve a box, clip the content (three target geometries) |
+| `faceless-input` / `-checkbox` | Empty inline element | `min-height`, scoped to `:not(:has([data-input]))` |
+
+Prefer emulation driven by the same CSS custom properties the component reads — the placeholder then follows the consumer's responsive media queries for free. Document any attribute-only configuration that CSS cannot see.
+
+**2. Gate on a readiness marker, and know which of the two windows a rule belongs to.**
+
+`:defined` flips when the definition is registered, which is often long before the component is laid out — the accordion waits for `slotchange`, the carousel's `_deferredInit()` waits for `window.load`. So every component sets `data-ready` on its host once its layout is final, and that is the hook for anything that must hold until then. (`faceless-navigation` uses its existing `data-type` attribute rather than adding a redundant one.)
+
+But the two hooks are not interchangeable, because there are two windows:
+
+| Window | Hook | Shadow DOM |
+|---|---|---|
+| Before the upgrade | `:not(:defined)` | absent — the host must fake the entire layout |
+| Upgraded, not yet ready | `:not([data-ready])` | live and already rendering its own chrome |
+
+**Host-level rules that substitute for the Shadow DOM belong on `:not(:defined)`.** Leaving them on `:not([data-ready])` applies them *on top of* the chrome the component now renders itself — reserved space is counted twice, and releasing the marker then produces exactly the shift the placeholder was meant to prevent. `carousel/preflight.css` splits along this line: host layout and the dots/play-pause strip on `:not(:defined)`, slide sizing on `:not([data-ready])` because `--internal-slide-width` is still `0px` in that window.
+
+Set the marker on *every* exit path of the init routine, including early returns for empty content — otherwise an empty component stays hidden forever.
+
+Verify the split by asking, for each declaration: *does the Shadow DOM already do this once it exists?* If yes, the rule is pre-upgrade only.
+
+**3. State the no-JavaScript consequence.**
+
+A placeholder that hides content is a content loss when the bundle never arrives. Where that applies, `preflight.css` and `docs.md` must carry the `<noscript>` escape hatch.
+
+### Server-rendered markup wins over any placeholder
+
+Components that build light-DOM markup must **adopt** existing markup rather than rebuild it — `faceless-nav-item` (`[part="toggle"]`), `faceless-input` and `faceless-checkbox` (`[data-input]`), `faceless-form` (`:scope > form`). This removes the shift at the source and is mandatory for VDOM frameworks: rebuilding moves framework-owned nodes and breaks later re-renders with `NotFoundError: Failed to execute 'removeChild' on 'Node'`.
+
+Adoption must also be idempotent — `attributeChangedCallback` may fire several times during a single upgrade, and it must only write attributes, never restructure the DOM.
+
+### Declarative Shadow DOM
+
+Every shadow component tolerates a Shadow Root the parser attached before the upgrade, so post-build DSD injection stays possible:
+
+```js
+if (!this.shadowRoot) {
+  this.attachShadow({ mode: 'open' });
+  this.shadowRoot.appendChild(template.content.cloneNode(true));
+}
+```
+
+Keep styles as an inline `<style>` in the template. `adoptedStyleSheets` cannot be serialised into HTML and would break DSD.
+
 ## Accessibility (A11y)
 
 Every component must ship with full keyboard and screen reader support. No ARIA responsibility should fall on the consumer. The following patterns are mandatory for all new components.

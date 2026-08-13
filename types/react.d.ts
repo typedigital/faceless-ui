@@ -50,6 +50,7 @@ interface FacelessCarouselProps extends WebComponentProps<FacelessCarouselElemen
 interface FacelessAccordionProps extends WebComponentProps<FacelessAccordionElement> {
   autoplay?: boolean;
   interval?: number | string;
+  'autoplay-paused'?: boolean;
   multiple?: boolean;
   'hide-play-pause'?: boolean;
   onAccordionToggle?: FacelessEventHandler<AccordionToggleDetail>;

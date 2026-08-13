@@ -80,6 +80,8 @@ const BaseElement = isBrowser ? HTMLElement : class {};
  * @attr {boolean} autoplay - Enable automatic panel rotation.
  * @attr {number} interval - Autoplay interval in milliseconds (default: 3000).
  * @attr {boolean} hide-play-pause - Visually hide the autoplay play/pause button.
+ * @attr {boolean} autoplay-paused - Pause autoplay from outside the component. The
+ *   built-in button reflects its state here too, so consumers can mirror it.
  *
  * @fires {CustomEvent} accordion-toggle - Fires when a panel opens or closes. `detail: { index: number, item: HTMLElement, open: boolean }`
  * @fires {CustomEvent} accordiontoggle - Alias of `accordion-toggle`.
@@ -111,6 +113,10 @@ class FacelessAccordion extends BaseElement {
       items: [],
       uid: instanceCount++,
       autoplayTimer: null,
+      // Bookkeeping so a pause resumes the cycle instead of restarting it.
+      autoplayRemaining: null,
+      autoplayCycleLength: 0,
+      autoplayStartedAt: 0,
       isPaused: false,
       isUserPaused: false,
     };
@@ -124,7 +130,7 @@ class FacelessAccordion extends BaseElement {
   }
 
   static get observedAttributes() {
-    return ['autoplay', 'interval'];
+    return ['autoplay', 'interval', 'autoplay-paused'];
   }
 
   attributeChangedCallback(name) {
@@ -139,7 +145,33 @@ class FacelessAccordion extends BaseElement {
       this._updateAriaLive();
     }
     if (name === 'interval' && this.hasAttribute('autoplay') && !this.state.isUserPaused) {
+      // A new interval invalidates the remainder measured against the old one.
+      this._stopAutoplay();
+      this.state.autoplayRemaining = null;
       this._startAutoplay();
+    }
+    if (name === 'autoplay-paused') {
+      this._syncUserPausedFromAttribute();
+    }
+  }
+
+  /**
+   * Outside handle on the autoplay state: set `autoplay-paused` to pause, remove
+   * it to resume. Reads back the same value the built-in button produces, so a
+   * consumer with its own control can mirror whatever flipped the state.
+   */
+  get autoplayPaused() {
+    return this.hasAttribute('autoplay-paused');
+  }
+
+  set autoplayPaused(paused) {
+    this.toggleAttribute('autoplay-paused', Boolean(paused));
+  }
+
+  /** Applies an externally set `autoplay-paused` through the regular toggle. */
+  _syncUserPausedFromAttribute() {
+    if (this.hasAttribute('autoplay-paused') !== this.state.isUserPaused) {
+      this._toggleAutoplay();
     }
   }
 
@@ -342,6 +374,10 @@ class FacelessAccordion extends BaseElement {
     if (!item || item.disabled) return;
 
     if (this.hasAttribute('autoplay') && !this.state.isUserPaused && !this.state.isPaused) {
+      // The open item changes, so the next cycle starts from scratch. Stop
+      // first: _startAutoplay would otherwise bank the remainder on its way in.
+      this._stopAutoplay();
+      this.state.autoplayRemaining = null;
       this._startAutoplay();
     }
 
@@ -404,7 +440,8 @@ class FacelessAccordion extends BaseElement {
 
     const interval = parseInt(this.getAttribute('interval')) || 3000;
     this.style.setProperty('--accordion-autoplay-interval', `${interval}ms`);
-    this.state.autoplayTimer = setInterval(() => {
+    const tick = () => {
+      this._beginAutoplayCycle(interval);
       const enabledItems = this._getTriggerItems();
       if (enabledItems.length <= 1) return;
 
@@ -427,12 +464,39 @@ class FacelessAccordion extends BaseElement {
       }));
 
       this.srAnnouncer.textContent = `Item ${nextItem.index + 1} of ${enabledItems.length}`;
-    }, interval);
+    };
+
+    // A pause stores what was left of the cycle. Serve that remainder first and
+    // only then fall back into the regular rhythm — otherwise every pause would
+    // silently grant a full interval again, and a progress indicator driven by
+    // --accordion-autoplay-state would run ahead of the rotation.
+    const wait = this.state.autoplayRemaining === null ? interval : this.state.autoplayRemaining;
+    this.state.autoplayRemaining = null;
+    this._beginAutoplayCycle(wait);
+
+    if (wait === interval) {
+      this.state.autoplayTimer = setInterval(tick, interval);
+    } else {
+      this.state.autoplayTimer = setTimeout(() => {
+        tick();
+        this.state.autoplayTimer = setInterval(tick, interval);
+      }, wait);
+    }
     this.style.setProperty('--accordion-autoplay-state', 'running');
+  }
+
+  /** Marks the start of a cycle of `length` ms, for the remaining-time maths. */
+  _beginAutoplayCycle(length) {
+    this.state.autoplayCycleLength = length;
+    this.state.autoplayStartedAt = Date.now();
   }
 
   _stopAutoplay() {
     if (this.state.autoplayTimer) {
+      // Carry the unspent part of the cycle over to the next start.
+      const elapsed = Date.now() - this.state.autoplayStartedAt;
+      this.state.autoplayRemaining = Math.max(0, this.state.autoplayCycleLength - elapsed);
+      clearTimeout(this.state.autoplayTimer);
       clearInterval(this.state.autoplayTimer);
       this.state.autoplayTimer = null;
     }
@@ -459,6 +523,8 @@ class FacelessAccordion extends BaseElement {
     }
     this._updatePlayPauseButton();
     this._updateAriaLive();
+    // Reflected so the attribute stays the single readable source of truth.
+    this.toggleAttribute('autoplay-paused', this.state.isUserPaused);
   }
 
   _updatePlayPauseButton() {

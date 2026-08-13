@@ -16,6 +16,7 @@ The component uses HTML attributes for configuration. Boolean attributes are ena
 | `autoplay`        | Cycle through items automatically                  | `false` |
 | `interval`        | Time between auto-rotations (ms)                   | `3000`  |
 | `hide-play-pause` | Visually hide the play/pause button (still in DOM for screen readers) | `false` |
+| `autoplay-paused` | Pause autoplay from outside; also set by the built-in button | `false` |
 
 ---
 
@@ -69,6 +70,9 @@ The component automatically sets and updates these attributes. Use them as hooks
 
 **On item elements (direct children):**
 - `data-open` — present when expanded
+
+**On the host element:**
+- `autoplay-paused` — present while autoplay is paused by the button or by the consumer. Not set by the hover and focus pauses, which are transient.
 
 ---
 
@@ -142,6 +146,7 @@ Autoplay pauses automatically when:
 - The user hovers over the accordion (`mouseenter` / `mouseleave`)
 - Any element inside the accordion receives focus (`focusin` / `focusout`)
 - The user clicks the play/pause button (persists until clicked again)
+- The `autoplay-paused` attribute is set from the outside (persists until removed)
 - `prefers-reduced-motion: reduce` is active — autoplay does **not** start automatically (WCAG 2.2.2). The button remains visible so the user can start manually.
 
 ### Play/Pause Button
@@ -150,6 +155,18 @@ Autoplay pauses automatically when:
 - Shows ⏸ (pause) when playing, ▶ (play) when paused.
 - `aria-label` updates to reflect the current action ("Pause auto-rotation" / "Start auto-rotation").
 - Use `hide-play-pause` to visually hide the button while keeping it accessible to screen readers.
+
+#### Controlling autoplay from the outside
+
+`autoplay-paused` pauses autoplay when set and resumes it when removed; `autoplayPaused` is the property equivalent. The built-in button sets the same attribute, so it always reflects the current state no matter which side flipped it — that is what lets a consumer mirror its own control against it.
+
+```jsx
+<faceless-accordion autoplay interval="10000" hide-play-pause {...(isPaused ? { 'autoplay-paused': true } : {})}>
+```
+
+Combine it with `hide-play-pause` when you supply your own button: the built-in one renders ahead of the `<slot>` and would otherwise sit in the flow and push the items down.
+
+Pausing keeps the unspent part of the running cycle and resumes it, rather than granting a full interval again. That holds for every pause — hover, focus, the button and `autoplay-paused` alike — and is what makes the `animation-play-state` progress bar below stay in step with the rotation instead of running ahead of it.
 
 ### Autoplay Timing Communication
 
@@ -195,6 +212,7 @@ A visually hidden `aria-live` region announces item changes:
 - `open(index)` — Open a specific panel by index
 - `close(index)` — Close a specific panel by index
 - `toggle(index)` — Toggle a specific panel by index
+- `autoplayPaused` — Read or set the paused state; reflects the `autoplay-paused` attribute
 
 ---
 
@@ -229,6 +247,7 @@ The `--accordion-duration` token is automatically set to `0ms` when `prefers-red
 When `autoplay` is enabled, the component follows WCAG 2.2.2 (Pause, Stop, Hide):
 - **prefers-reduced-motion**: Autoplay does not start automatically. The play/pause button remains visible for manual activation.
 - **Play/Pause button**: Always reachable via keyboard. `aria-label` reflects the current state.
+- **Custom control**: A consumer replacing the button drives `autoplay-paused` instead and is responsible for the accessible name of its own control.
 - **Focus pause**: Any focus inside the accordion pauses auto-rotation immediately.
 - **Hover pause**: Mouse hover pauses auto-rotation.
 - **`aria-live`**: Set to `"off"` during auto-rotation to prevent repetitive announcements. Switches to `"polite"` when paused so manual interactions are announced.

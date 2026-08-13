@@ -39,17 +39,17 @@
         <faceless-nav-item href="#contact">Contact</faceless-nav-item>
     </faceless-navigation>
 
-    <!-- ─── 2. Desktop Navigation (manuelles Markup) ──────────────────── -->
-    <h2>2. Desktop Navigation (manuelles Markup)</h2>
-    <p>Dasselbe Ergebnis mit klassischem <code>&lt;nav&gt;&lt;ul&gt;&lt;li&gt;</code> Markup — vollständig rückwärtskompatibel. Beide Varianten sind gleichwertig.</p>
+    <!-- ─── 2. Desktop Navigation (manual markup) ─────────────────────── -->
+    <h2>2. Desktop Navigation (manual markup)</h2>
+    <p>The same result with classic <code>&lt;nav&gt;&lt;ul&gt;&lt;li&gt;</code> markup — fully backwards compatible. Both variants are equivalent.</p>
     <details class="a11y-note">
-        <summary>A11y-Hinweise für manuelles Markup</summary>
+        <summary>A11y notes for manual markup</summary>
         <ul>
-            <li><strong><code>&lt;a href="…"&gt;</code> vs. <code>&lt;button&gt;</code>:</strong> Verwende <code>&lt;a&gt;</code> für echte Links (Navigation zu einer URL) und <code>&lt;button&gt;</code> für reine Toggle-Elemente ohne Navigationsziel. <code>&lt;a href="#"&gt;</code> als Button-Ersatz erzeugt für Screen-Reader-Nutzer einen verwirrenden Tab-Stop.</li>
-            <li><strong><code>&lt;ul&gt;&lt;li&gt;</code>-Struktur:</strong> Die Listenstruktur vermittelt Screenreadern Kontext ("3 Einträge", "Eintrag 2 von 3"). Ohne sie verlieren Nutzer die räumliche Orientierung im Menü.</li>
-            <li><strong><code>&lt;nav&gt;</code>-Landmark:</strong> Das <code>&lt;nav&gt;</code>-Element erstellt einen Landmark, den Screen-Reader-Nutzer direkt anspringen oder überspringen können.</li>
-            <li><strong><code>aria-label</code> am Host:</strong> Bei mehreren Navigation-Landmarks auf einer Seite muss jeder eindeutig benannt sein (z.B. <code>aria-label="Hauptnavigation"</code>). Die Komponente warnt in der Konsole, wenn dieses Attribut fehlt.</li>
-            <li><strong>Kein manuelles ARIA:</strong> <code>aria-expanded</code>, <code>aria-controls</code>, <code>aria-haspopup</code>, <code>role</code>, <code>tabindex</code> und Submenu-<code>id</code>s werden ausschließlich von der Komponente gesetzt. Diese Attribute nicht manuell hinzufügen.</li>
+            <li><strong><code>&lt;a href="…"&gt;</code> vs. <code>&lt;button&gt;</code>:</strong> Use <code>&lt;a&gt;</code> for real links (navigating to a URL) and <code>&lt;button&gt;</code> for pure toggle elements without a navigation target. <code>&lt;a href="#"&gt;</code> as a button substitute creates a confusing tab stop for screen reader users.</li>
+            <li><strong><code>&lt;ul&gt;&lt;li&gt;</code> structure:</strong> The list structure gives screen readers context ("3 items", "item 2 of 3"). Without it, users lose their spatial orientation within the menu.</li>
+            <li><strong><code>&lt;nav&gt;</code> landmark:</strong> The <code>&lt;nav&gt;</code> element creates a landmark that screen reader users can jump straight to or skip past.</li>
+            <li><strong><code>aria-label</code> on the host:</strong> When a page has several navigation landmarks, each one must be uniquely named (e.g. <code>aria-label="Main navigation"</code>). The component logs a console warning when this attribute is missing.</li>
+            <li><strong>No manual ARIA:</strong> <code>aria-expanded</code>, <code>aria-controls</code>, <code>aria-haspopup</code>, <code>role</code>, <code>tabindex</code>, and submenu <code>id</code>s are set exclusively by the component. Do not add these attributes manually.</li>
         </ul>
     </details>
 
@@ -125,9 +125,9 @@
         <faceless-nav-item href="#help">Help</faceless-nav-item>
     </faceless-navigation>
 
-    <!-- ─── 5. App-Menu (manuelles Markup) ─────────────────────────── -->
-    <h2>5. App-Menu Navigation (manuelles Markup)</h2>
-    <p>Dieselbe Menubar mit klassischem <code>&lt;nav&gt;&lt;ul&gt;&lt;li&gt;</code> Markup — vollständig rückwärtskompatibel.</p>
+    <!-- ─── 5. App-Menu (manual markup) ────────────────────────────── -->
+    <h2>5. App-Menu Navigation (manual markup)</h2>
+    <p>The same menubar with classic <code>&lt;nav&gt;&lt;ul&gt;&lt;li&gt;</code> markup — fully backwards compatible.</p>
 
     <faceless-navigation aria-label="Application menu manual demo" type="app-menu" id="demo-appmenu-manual">
         <nav>

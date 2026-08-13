@@ -12,6 +12,44 @@ Faceless UI is a zero-dependency, framework-agnostic web component library imple
 
 To develop/test locally, open `carousel/showcase.html` in a browser (use a local server to avoid CORS issues with ES modules if needed).
 
+## Language: English Only
+
+**Everything committed to this repository is written in English.** No exceptions, regardless of the language the task was requested in. A German prompt still produces English code, English comments, and an English commit message.
+
+This applies to:
+
+| Artifact | Covers |
+|---|---|
+| Source (`*/index.js`, `scripts/`, `*/ssr-test.mjs`) | Identifiers, comments, JSDoc, `console.warn` messages |
+| Docs (`*/docs.md`, `README.md`, `tests/*.md`, this file) | Prose, headings, and the copy inside code examples |
+| Showcases (`*/showcase.html`, `*/showcase.css`) | Headings, body copy, CSS comments, demo labels, form fields, menu items |
+| Test apps (`tests/*-app/`) | Component code, UI copy, test scenario descriptions |
+| Git | Branch names, commit messages, PR titles and bodies |
+
+### User-facing strings are English defaults, not hardcoded German
+
+Every string a component ships to the end user — ARIA labels, `aria-roledescription`, screen reader announcements, validation errors — is English. Localization is the **consumer's** job and must be reachable through the public API, never by editing the component:
+
+- `<faceless-form>` exposes `announce-errors` and `announce-cleared` for the live region.
+- Per-field messages come from consumer markup (`data-error-required`, `error-type`, …).
+- Host labels fall back to English only when the consumer omits `aria-label`.
+
+If a new component needs a user-facing string with no such escape hatch, add an attribute for it — a hardcoded string in any language is the bug, English is just the default.
+
+### Example code stays realistic but English
+
+Demo content in `docs.md` and `showcase.html` uses English placeholders (`"Please enter your name"`, `Email`, `Subject`, `Submit`) — not German, and not lorem ipsum. The examples double as the primary API reference, so their copy must be readable by every consumer.
+
+### Verification
+
+Before committing, scan the diff for umlauts and common German words:
+
+```bash
+git diff --cached -U0 -- . ':!CLAUDE.md' | grep -E '^\+' | grep -E '[äöüßÄÖÜ]|\b(der|die|das|und|nicht|für|ein|eine|mit|von|oder|auch|wenn|kann|ist|sind|werden|durch|über|Bitte|Fehler|Formular)\b'
+```
+
+Any hit is a stop-the-line event. `git diff` without `--cached` checks the working tree instead. The `':!CLAUDE.md'` pathspec is only there because the pattern above would otherwise match its own definition — review changes to this file by eye.
+
 ## Architecture
 
 ### Component Structure

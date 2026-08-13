@@ -84,37 +84,37 @@ Forwarding happens both at `connectedCallback` (initial) and in `attributeChange
 ### Full structure with all optional elements
 
 ```html
-<faceless-form aria-label="Kontaktformular" action="/contact" method="post">
+<faceless-form aria-label="Contact form" action="/contact" method="post">
 
   <!-- Optional error summary shell -->
   <div data-error-summary hidden></div>
 
   <div data-field="name"
-       data-error-required="Bitte gib deinen Namen ein"
-       data-error-message="Ungültiger Name">
+       data-error-required="Please enter your name"
+       data-error-message="Invalid name">
     <label data-label>Name</label>
     <input data-input type="text" required autocomplete="name">
-    <span data-hint>Vor- und Nachname</span>
+    <span data-hint>First and last name</span>
     <span data-error></span>
   </div>
 
   <div data-field="email"
-       data-error-required="E-Mail-Adresse ist Pflicht"
-       data-error-type="Keine gültige E-Mail-Adresse">
-    <label data-label>E-Mail</label>
+       data-error-required="Email address is required"
+       data-error-type="Not a valid email address">
+    <label data-label>Email</label>
     <input data-input type="email" required autocomplete="email">
     <span data-error></span>
   </div>
 
   <div data-field="phone"
        data-pattern="^\+?[0-9\s\-]{7,}$"
-       data-error-pattern="Ungültige Telefonnummer (mind. 7 Ziffern)">
-    <label data-label>Telefon</label>
+       data-error-pattern="Invalid phone number (at least 7 digits)">
+    <label data-label>Phone</label>
     <input data-input type="tel" autocomplete="tel">
     <span data-error></span>
   </div>
 
-  <button type="submit">Absenden</button>
+  <button type="submit">Submit</button>
 
 </faceless-form>
 ```
@@ -263,10 +263,10 @@ The component:
 
 ```html
 <div data-error-summary tabindex="-1">
-  <p>2 Fehler in diesem Formular</p>
+  <p>2 errors in this form</p>
   <ul>
-    <li><a href="#ff0-name-input">Name: Bitte gib deinen Namen ein</a></li>
-    <li><a href="#ff0-email-input">E-Mail: E-Mail-Adresse ist Pflicht</a></li>
+    <li><a href="#ff0-name-input">Name: Please enter your name</a></li>
+    <li><a href="#ff0-email-input">Email: Email address is required</a></li>
   </ul>
 </div>
 ```
@@ -449,10 +449,10 @@ The text is set via `requestAnimationFrame` to ensure reliable announcements in 
 
 ### Screen reader experience (example flow)
 
-1. User focuses the email input → screen reader announces: *"E-Mail, Pflichtfeld, bearbeitbares Textfeld, Hinweis: Ihre geschäftliche E-Mail-Adresse"*
-2. User submits with empty email → screen reader announces: *"1 Fehler in diesem Formular"*; focus moves to the error summary.
+1. User focuses the email input → screen reader announces: *"Email, required, edit text, hint: Your business email address"*
+2. User submits with empty email → screen reader announces: *"1 error in this form"*; focus moves to the error summary.
 3. User activates the summary link → focus moves to the email input.
-4. User corrects the input and submits → screen reader announces: *"Alle Fehler behoben"*.
+4. User corrects the input and submits → screen reader announces: *"All errors resolved"*.
 
 ---
 
@@ -660,11 +660,11 @@ Both patterns can coexist in the same `<faceless-form>` — `<faceless-input>` f
   <faceless-input
     name="email"
     type="email"
-    label="E-Mail"
+    label="Email"
     required
     autocomplete="email"
-    error-required="E-Mail ist Pflicht."
-    error-type="Keine gültige E-Mail-Adresse.">
+    error-required="Email is required."
+    error-type="Not a valid email address.">
   </faceless-input>
 
   <button type="submit">Submit</button>
@@ -715,11 +715,11 @@ Both patterns can coexist in the same `<faceless-form>` — `<faceless-input>` f
 <faceless-input
   element="textarea"
   name="message"
-  label="Nachricht"
+  label="Message"
   required
   rows="4"
-  placeholder="Deine Nachricht …"
-  error-required="Bitte gib eine Nachricht ein.">
+  placeholder="Your message …"
+  error-required="Please enter a message.">
 </faceless-input>
 ```
 
@@ -731,10 +731,10 @@ Place `<option>` (and `<optgroup>`) elements as direct children of `<faceless-in
 <faceless-input
   element="select"
   name="subject"
-  label="Thema"
+  label="Subject"
   required
-  error-required="Bitte wähle ein Thema.">
-  <option value="">— Bitte wählen —</option>
+  error-required="Please choose a subject.">
+  <option value="">— Please choose —</option>
   <option value="support">Support</option>
   <option value="feedback">Feedback</option>
 </faceless-input>
@@ -746,7 +746,7 @@ Place `<option>` (and `<optgroup>`) elements as direct children of `<faceless-in
 <faceless-form aria-label="Mixed form">
 
   <!-- verbose field -->
-  <div data-field="name" data-error-required="Name ist Pflicht.">
+  <div data-field="name" data-error-required="Name is required.">
     <label data-label>Name</label>
     <input data-input type="text" required>
     <span data-error></span>
@@ -756,9 +756,9 @@ Place `<option>` (and `<optgroup>`) elements as direct children of `<faceless-in
   <faceless-input
     name="email"
     type="email"
-    label="E-Mail"
+    label="Email"
     required
-    error-required="E-Mail ist Pflicht.">
+    error-required="Email is required.">
   </faceless-input>
 
   <button type="submit">Submit</button>
@@ -773,8 +773,8 @@ Updating observed attributes after mount updates the internal element:
 
 ```js
 const input = document.querySelector('faceless-input[name="email"]');
-input.setAttribute('label', 'Neue Beschriftung');   // → label text updates
-input.setAttribute('placeholder', 'neu@…');          // → input placeholder updates
+input.setAttribute('label', 'New label');            // → label text updates
+input.setAttribute('placeholder', 'new@…');          // → input placeholder updates
 input.removeAttribute('required');                    // → required removed from control
 ```
 
@@ -789,8 +789,8 @@ input.removeAttribute('required');                    // → required removed fr
 In an SSR context, pre-render the internal light DOM manually:
 
 ```html
-<faceless-input data-field="email" data-error-required="E-Mail ist Pflicht." ...>
-  <label data-label>E-Mail</label>
+<faceless-input data-field="email" data-error-required="Email is required." ...>
+  <label data-label>Email</label>
   <input data-input type="email" name="email" required id="ff0-email-input">
   <span data-error id="ff0-email-error"></span>
 </faceless-input>

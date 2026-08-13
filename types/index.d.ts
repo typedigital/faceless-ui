@@ -38,6 +38,7 @@ export interface FacelessCarouselElement extends HTMLElement {
 export interface FacelessAccordionElement extends HTMLElement {
   autoplay: boolean;
   interval: number;
+  autoplayPaused: boolean;
   multiple: boolean;
   hidePlayPause: boolean;
   open(index: number): void;

@@ -41,6 +41,7 @@ export class FacelessCarouselDirective {
 export class FacelessAccordionDirective {
   @Input({ transform: booleanAttribute }) autoplay?: boolean;
   @Input({ transform: numberAttribute }) interval?: number;
+  @Input({ alias: 'autoplay-paused', transform: booleanAttribute }) autoplayPaused?: boolean;
   @Input({ transform: booleanAttribute }) multiple?: boolean;
   @Input({ alias: 'hide-play-pause', transform: booleanAttribute }) hidePlayPause?: boolean;
 

@@ -1,10 +1,10 @@
     :root {
-            /* typedigital Farbwelt [cite: 142] */
+            /* typedigital color palette [cite: 142] */
             --td-dark-blue: #171D26;
             --td-sunset: #FF5958; /* cite: 145, 147 */
             --td-platinum: #E3E5E5; /* cite: 153, 155 */
             
-            font-family: 'Nexa', sans-serif; /* Primäre Hausschrift [cite: 180] */
+            font-family: 'Nexa', sans-serif; /* Primary brand typeface [cite: 180] */
             background-color: var(--td-platinum);
             color: var(--td-dark-blue);
         }
@@ -12,7 +12,7 @@
         body { padding: 40px; max-width: 1100px; margin: 0 auto; }
 
         h1, h2 { 
-            /* Recia für Headlines & Highlights [cite: 195] */
+            /* Recia for headlines & highlights [cite: 195] */
             font-family: 'Recia', serif; 
             font-style: italic; 
             color: var(--td-dark-blue);
@@ -24,14 +24,14 @@
             margin-bottom: 30px;
         }
 
-        /* Branding der Karussell-Komponente */
+        /* Branding of the carousel component */
         easy-carousel {
             --dot-active-color: var(--td-sunset);
             --dot-color: var(--td-dark-blue);
             --dot-size: 10px;
         }
 
-    /* Gemeinsames Styling für die Slides (Light DOM) */
+    /* Shared styling for the slides (Light DOM) */
     .slide {
         aspect-ratio: 16 / 9;
         background: #ffffff;
@@ -47,7 +47,7 @@
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Animation: Aktive Slides hervorheben */
+    /* Animation: highlight active slides */
     .slide[data-active="true"] {
         border-color: #3b82f6;
         transform: scale(1.02);
@@ -56,7 +56,7 @@
 
     .slide p { font-size: 1rem; margin: 10px 0 0; font-weight: normal; color: #6b7280; }
 
-    /* RESPONSIVE BREAKPOINTS via CSS Variablen */
+    /* RESPONSIVE BREAKPOINTS via CSS variables */
     #hero-carousel {
         --items-per-view: 1;
         --gap: 10px;
@@ -69,12 +69,12 @@
         }
     }
 
-    /* Custom Styling für Dots via ::part */
+    /* Custom styling for dots via ::part */
     #custom-dots::part(dot-active) {
-        background-color: #10b981; /* Smaragdgrün */
+        background-color: #10b981; /* emerald green */
     }
 
-    /* Styling für das Wrapper-Layout */
+    /* Styling for the wrapper layout */
     .carousel-wrapper {
         position: relative;
         display: flex;
@@ -82,13 +82,13 @@
         gap: 10px;
     }
 
-    /* Das Karussell füllt den Platz zwischen den Buttons */
+    /* The carousel fills the space between the buttons */
     .carousel-wrapper > faceless-carousel {
         flex: 1;
         min-width: 0;
     }
 
-    /* Styling für die runden Pfeil-Buttons */
+    /* Styling for the round arrow buttons */
     .nav-btn {
         width: 44px;
         height: 44px;
@@ -115,7 +115,7 @@
         fill: #374151;
     }
 
-    /* Optional: Buttons über das Karussell legen statt daneben */
+    /* Optional: overlay the buttons on the carousel instead of placing them beside it */
     @media (max-width: 600px) {
         .nav-btn {
             position: absolute;
